@@ -1,0 +1,5 @@
+﻿  Scene.cpp
+f:\capstone pre\light demo\assignment6_rui xia\dx11starter\scene.cpp(64): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+f:\capstone pre\light demo\assignment6_rui xia\dx11starter\scene.cpp(65): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  DX11Starter.vcxproj -> F:\capstone pre\light demo\assignment6_Rui Xia\DX11Starter\Debug\DX11Starter.exe
+  DX11Starter.vcxproj -> F:\capstone pre\light demo\assignment6_Rui Xia\DX11Starter\Debug\DX11Starter.pdb (Full PDB)

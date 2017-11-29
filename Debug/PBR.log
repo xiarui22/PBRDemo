@@ -1,0 +1,33 @@
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (DX11Starter.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+F:\capstone pre\light demo\PBR\ConvolutionPixelShader.hlsl(18,9-42): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\ConvolutionPixelShader.cso
+F:\capstone pre\light demo\PBR\ConvolutionVertexShader.hlsl(28,18-43): warning X3578: Output value 'main' is not completely initialized
+  
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\ConvolutionVertexShader.cso
+F:\capstone pre\light demo\PBR\PBRPixelShader.hlsl(104,2-28): warning X3206: implicit truncation of vector type
+F:\capstone pre\light demo\PBR\PBRPixelShader.hlsl(132,10-61): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\PBRPixelShader.cso
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\PBRVertexShader.cso
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\PixelShader.cso
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\SkyPS.cso
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\VertexShader.cso
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\SkyVS.cso
+  SimpleShader.cpp
+  Scene.cpp
+f:\capstone pre\light demo\pbr\scene.cpp(64): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+f:\capstone pre\light demo\pbr\scene.cpp(65): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+  Mesh.cpp
+  Material.cpp
+  Main.cpp
+  Game.cpp
+f:\capstone pre\light demo\pbr\game.cpp(103): warning C4244: 'argument': conversion from 'int' to 'float', possible loss of data
+f:\capstone pre\light demo\pbr\game.cpp(257): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+  Entity.cpp
+  DXCore.cpp
+  CaptureIrradiance.cpp
+  Camera.cpp
+  Generating Code...
+  PBR.vcxproj -> F:\capstone pre\light demo\PBR\Debug\PBR.exe
+  PBR.vcxproj -> F:\capstone pre\light demo\PBR\Debug\PBR.pdb (Full PDB)
