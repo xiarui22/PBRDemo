@@ -58,6 +58,21 @@ void Game::Init()
 	scene = new Scene();
 	scene->init(device, context);
 	CreateMatrices();
+
+	irradianceCapturer = new CaptureIrradiance();
+
+	irradianceCapturer->Init(device, 512, 512);
+	irradianceCapturer->RenderEnvironmentMap(context, depthStencilView, scene->cubeForCapture);
+
+	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)width;
+	viewport.Height = (float)height;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	context->RSSetViewports(1, &viewport);
 	
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
@@ -115,6 +130,8 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = {0.4f, 0.6f, 0.75f, 0.0f};
 
+
+
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
@@ -125,15 +142,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
-	// Send data to shader variables
-	//  - Do this ONCE PER OBJECT you're drawing
-	//  - This is actually a complex process of copying data to a local buffer
-	//    and then copying that entire buffer to the GPU.  
-	//  - The "SimpleShader" class handles all of that for you.
-
-	// Set buffers in the input assembler
-	//  - Do this ONCE PER OBJECT you're drawing, since each object might
-	//    have different geometry.
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
@@ -170,6 +178,9 @@ void Game::Draw(float deltaTime, float totalTime)
 			}
 		}
 
+		
+		
+
 		//draw skybox
 
 		ID3D11Buffer* vertexBuffer = scene->skyBox->getMesh()->GetVertexBuffer();
@@ -177,14 +188,16 @@ void Game::Draw(float deltaTime, float totalTime)
 		context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 		context->IASetIndexBuffer(scene->skyBox->getMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
-	    
-
 		scene->skyBox->getMaterial()->GetvertexShader()->SetMatrix4x4("view", camera->GetView());
 		scene->skyBox->getMaterial()->GetvertexShader()->SetMatrix4x4("projection", camera->GetProjection());
 		scene->skyBox->getMaterial()->GetvertexShader()->CopyAllBufferData();
 		scene->skyBox->getMaterial()->GetvertexShader()->SetShader();
 
-		scene->skyBox->getMaterial()->SetSkyPixelShaderSrv();
+		scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", irradianceCapturer->GetShaderResourceView());
+		scene->skyBox->getMaterial()->GetpixelShader()->SetSamplerState("basicSampler", scene->skyBox->getMaterial()->GetSamplerState());
+		scene->skyBox->getMaterial()->GetpixelShader()->CopyAllBufferData();
+		scene->skyBox->getMaterial()->GetpixelShader()->SetShader();
+		//scene->skyBox->getMaterial()->SetSkyPixelShaderSrv();
 		context->RSSetState(scene->skyBox->getMaterial()->GetRastState());
 		context->OMSetDepthStencilState(scene->skyBox->getMaterial()->GetDepthStencilState(), 0);
 		context->DrawIndexed(scene->skyBox->getMesh()->GetIndexCount(), 0, 0);

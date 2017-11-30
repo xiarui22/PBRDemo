@@ -8,9 +8,9 @@ class Scene
 {
 	Mesh *mesh;
 	Mesh * skyBoxMesh;
-	//Material *material;
 	Material *PBRmaterial;
 	Material *skyBoxMaterial;
+	Material *irradianceMaterial;
 	
 public:
 	Scene();
@@ -21,6 +21,8 @@ public:
 	PointLight pointLight2;
 	PointLight pointLight3;
 	Entity * skyBox;
+	//Actually another scene, there's a cube to draw the skybox on and to be captured to generate irradiance
+	Entity * cubeForCapture;
 
 	//use for PBR
 	XMFLOAT3 albedo;

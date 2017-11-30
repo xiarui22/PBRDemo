@@ -5,6 +5,7 @@
 
 #include "Camera.h"
 #include "Scene.h"
+#include "CaptureIrradiance.h"
 
 class Game 
 	: public DXCore
@@ -30,13 +31,14 @@ private:
 
 	void CreateMatrices();
 	
-
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.
 	POINT prevMousePos;
 	
 	Camera * camera;
 	Scene * scene;
+	CaptureIrradiance * irradianceCapturer;
+
 	
 };
 
