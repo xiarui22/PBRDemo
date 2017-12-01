@@ -1,0 +1,5 @@
+﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (x64\Debug\) contains files shared from another project (DX11Starter.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+F:\capstone pre\light demo\PBR\PixelShader.hlsl(56,34-44): error X4502: invalid vs_2_0 output semantic 'SV_TARGET'
+F:\capstone pre\light demo\PBR\PixelShader.hlsl(17,19-28): error X4502: invalid vs_2_0 input semantic 'WORLDPOS'
+  
+  compilation failed; no code produced

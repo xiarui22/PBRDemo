@@ -44,6 +44,7 @@ Game::~Game()
 	// we've made in the Game class
 	delete camera;
 	delete scene;
+	delete irradianceCapturer;
 }
 
 // --------------------------------------------------------
@@ -62,6 +63,9 @@ void Game::Init()
 	irradianceCapturer = new CaptureIrradiance();
 
 	irradianceCapturer->Init(device, 512, 512);
+	
+	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
+
 	irradianceCapturer->RenderEnvironmentMap(context, depthStencilView, scene->cubeForCapture);
 
 	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
@@ -77,7 +81,7 @@ void Game::Init()
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
+	
 }
 
 // --------------------------------------------------------
@@ -129,12 +133,11 @@ void Game::Draw(float deltaTime, float totalTime)
 {
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = {0.4f, 0.6f, 0.75f, 0.0f};
+	//const float color[4] = { 1, 1, 0, 0.0f };
 
-
-
-	// Clear the render target and depth buffer (erases what's on the screen)
-	//  - Do this ONCE PER FRAME
-	//  - At the beginning of Draw (before drawing *anything*)
+	//// Clear the render target and depth buffer (erases what's on the screen)
+	////  - Do this ONCE PER FRAME
+	////  - At the beginning of Draw (before drawing *anything*)
 	context->ClearRenderTargetView(backBufferRTV, color);
 	context->ClearDepthStencilView(
 		depthStencilView, 
@@ -178,10 +181,10 @@ void Game::Draw(float deltaTime, float totalTime)
 			}
 		}
 
-		
-		
+		//
+		//
 
-		//draw skybox
+		////draw skybox
 
 		ID3D11Buffer* vertexBuffer = scene->skyBox->getMesh()->GetVertexBuffer();
 
@@ -194,6 +197,7 @@ void Game::Draw(float deltaTime, float totalTime)
 		scene->skyBox->getMaterial()->GetvertexShader()->SetShader();
 
 		scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", irradianceCapturer->GetShaderResourceView());
+		//scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", scene->skyBox->getMaterial()->GetShaderResourceView());
 		scene->skyBox->getMaterial()->GetpixelShader()->SetSamplerState("basicSampler", scene->skyBox->getMaterial()->GetSamplerState());
 		scene->skyBox->getMaterial()->GetpixelShader()->CopyAllBufferData();
 		scene->skyBox->getMaterial()->GetpixelShader()->SetShader();

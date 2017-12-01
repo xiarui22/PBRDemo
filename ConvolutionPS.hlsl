@@ -10,7 +10,7 @@ struct VertexToPixel
 	float3 uvw			: TEXCOORD;
 };
 
-static float PI = 3.14159265359;
+//static float PI = 3.14159265359;
 
 // Entry point for this pixel shader
 float4 main(VertexToPixel input) : SV_TARGET
@@ -37,6 +37,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//irradiance = PI*irradiance*(1.0 / float(nrSamples));
 	//irradiance = environmentMap.Sample(basicSampler, input.uvw).xyz;
 	//float4 FragColor = float4(irradiance, 1.0);
+	//float4 FragColor = float4(0,0,1, 1);
 	return environmentMap.Sample(basicSampler, input.uvw);
 	//return FragColor;
 }

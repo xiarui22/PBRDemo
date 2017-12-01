@@ -45,8 +45,8 @@ void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
 	PBRmaterial->LoadPixelShaders(device, context, L"PBRPixelShader");
 
 	irradianceMaterial = new Material(device, context, kMaterialCubemap, L"Assets/Textures/hw_crater.dds", nullptr, nullptr, nullptr, nullptr, nullptr);
-	irradianceMaterial->LoadVertexShaders(device, context, L"ConvolutionVS");
-	irradianceMaterial->LoadPixelShaders(device, context, L"ConvolutionPS");
+	irradianceMaterial->LoadVertexShaders(device, context, L"EnvironmentDiffuseVS");
+	irradianceMaterial->LoadPixelShaders(device, context, L"EnvironmentDiffusePS");
 }
 
 void Scene::CreateLights()

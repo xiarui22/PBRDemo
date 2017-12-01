@@ -32,7 +32,7 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	textureDesc.Height = textureHeight;
 	textureDesc.MipLevels = 0;
 	textureDesc.ArraySize = 6; //cubemap
-	//textureDesc.ArraySize = 1; //cubemap
+	//textureDesc.ArraySize = 1; 
 	//textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	textureDesc.SampleDesc.Count = 1;
@@ -65,11 +65,15 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	    }
 	}
 
+
 	//shader resource view description
 	srvDesc.Format = textureDesc.Format;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+	//srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.TextureCube.MostDetailedMip = 0;
 	srvDesc.TextureCube.MipLevels = -1;
+	//srvDesc.Texture2D.MipLevels = -1;
+	//srvDesc.Texture2D.MostDetailedMip = 0;
 
 	result = device->CreateShaderResourceView(irradianceMap, &srvDesc, &capturedSRV);
 	if (FAILED(result))
@@ -80,18 +84,29 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	width = textureWidth;
 	height = textureHeight;
 
+
+
 	return true;
 }
 
 void CaptureIrradiance::SetRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context, ID3D11DepthStencilView * depthStencilView)
 {
 	context->OMSetRenderTargets(1, &capturedRTV, depthStencilView);
+
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)width;
+	viewport.Height = (float)height;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	context->RSSetViewports(1, &viewport);
 }
 
 void CaptureIrradiance::ClearRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context, ID3D11DepthStencilView * depthStencilView)
 {
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
-
+	//const float color[4] = { 1, 1, 0, 0.0f };
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
@@ -116,14 +131,7 @@ ID3D11Texture2D * CaptureIrradiance::GetIrradianceMap()
 void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, ID3D11DepthStencilView * depthStencilView, Entity * cubeForCapture)
 {
 	
-	D3D11_VIEWPORT viewport = {};
-	viewport.TopLeftX = 0;
-	viewport.TopLeftY = 0;
-	viewport.Width = (float)width;
-	viewport.Height = (float)height;
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
-	context->RSSetViewports(1, &viewport);
+	
 	
 	Entity* ge = cubeForCapture;
 	ID3D11Buffer* vb = ge->getMesh()->GetVertexBuffer();
@@ -135,10 +143,9 @@ void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, ID3D
 	context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 	context->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
 	for (int i = 0; i < 6; i++) {
-		
 		SetRenderTarget(capturedRTV[i], context, depthStencilView);
-	    ClearRenderTarget(capturedRTV[i], context, depthStencilView);
-	
+		ClearRenderTarget(capturedRTV[i], context, depthStencilView);
+
 		irradianceVS = ge->getMaterial()->GetvertexShader();
 		irradiancePS = ge->getMaterial()->GetpixelShader();
 	
@@ -158,10 +165,13 @@ void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, ID3D
 		context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
 	
 	}
+
+
+
+
 	// Reset the render states we've changed
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);  
-
 }
 
 void CaptureIrradiance::CreateCaptureMatrices()
