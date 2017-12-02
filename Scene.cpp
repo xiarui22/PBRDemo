@@ -36,7 +36,7 @@ void Scene::CreateBasicGeometry(ID3D11Device * device)
 void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
 {
 	skyBoxMaterial = new Material(device, context, kMaterialCubemap, L"Assets/Textures/hw_crater.dds", nullptr, nullptr, nullptr, nullptr, nullptr);
-	skyBoxMaterial->LoadVertexShaders(device, context, L"SkyVS");
+    skyBoxMaterial->LoadVertexShaders(device, context, L"SkyVS");
 	skyBoxMaterial->LoadPixelShaders(device, context, L"SkyPS");
 
 	PBRmaterial = new Material(device, context, kMaterialPBR, nullptr, L"Assets/Textures/greasy-pan-2-albedo.png", L"Assets/Textures/greasy-pan-2-metal.png",

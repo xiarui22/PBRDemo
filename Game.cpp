@@ -59,14 +59,14 @@ void Game::Init()
 	scene = new Scene();
 	scene->init(device, context);
 	CreateMatrices();
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
+
 
 	irradianceCapturer = new CaptureIrradiance();
 
 	irradianceCapturer->Init(device, 512, 512);
 	
-	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
-
-	irradianceCapturer->RenderEnvironmentMap(context, depthStencilView, scene->cubeForCapture);
+	irradianceCapturer->RenderEnvironmentMap(context,  scene->cubeForCapture);
 
 	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
 	D3D11_VIEWPORT viewport = {};
@@ -77,7 +77,7 @@ void Game::Init()
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 	context->RSSetViewports(1, &viewport);
-	
+
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -165,7 +165,7 @@ void Game::Draw(float deltaTime, float totalTime)
 				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetData("pl3", &scene->pointLight3, sizeof(PointLight));
 
 				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetFloat3("camPos", camera->GetCamPos());
-				
+				scene->entities[i][j]->getMaterial()->SetEnvironmentDiffuseSrvForPBR(irradianceCapturer->GetShaderResourceView());
 				scene->entities[i][j]->getMaterial()->SetPBRPixelShaderSrv();
 
 				ID3D11Buffer* vertexBuffer = scene->entities[i][j]->getMesh()->GetVertexBuffer();
@@ -196,12 +196,13 @@ void Game::Draw(float deltaTime, float totalTime)
 		scene->skyBox->getMaterial()->GetvertexShader()->CopyAllBufferData();
 		scene->skyBox->getMaterial()->GetvertexShader()->SetShader();
 
-		scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", irradianceCapturer->GetShaderResourceView());
-		//scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", scene->skyBox->getMaterial()->GetShaderResourceView());
+		/*scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", irradianceCapturer->GetShaderResourceView());
 		scene->skyBox->getMaterial()->GetpixelShader()->SetSamplerState("basicSampler", scene->skyBox->getMaterial()->GetSamplerState());
 		scene->skyBox->getMaterial()->GetpixelShader()->CopyAllBufferData();
-		scene->skyBox->getMaterial()->GetpixelShader()->SetShader();
-		//scene->skyBox->getMaterial()->SetSkyPixelShaderSrv();
+		scene->skyBox->getMaterial()->GetpixelShader()->SetShader();*/
+
+		scene->skyBox->getMaterial()->SetSkyPixelShaderSrv();
+		
 		context->RSSetState(scene->skyBox->getMaterial()->GetRastState());
 		context->OMSetDepthStencilState(scene->skyBox->getMaterial()->GetDepthStencilState(), 0);
 		context->DrawIndexed(scene->skyBox->getMesh()->GetIndexCount(), 0, 0);
@@ -210,6 +211,7 @@ void Game::Draw(float deltaTime, float totalTime)
 		context->RSSetState(0);
 		context->OMSetDepthStencilState(0, 0);
 
+	//	scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", 0);
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
 	//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)

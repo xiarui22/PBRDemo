@@ -100,6 +100,7 @@ void Material::SetPBRTexture(ID3D11Device * device, ID3D11DeviceContext * contex
 	hr = CreateWICTextureFromFile(device, context, normalpath, 0, &normalSrv);
 
 	if (FAILED(hr)) return;
+
 }
 
 void Material::LoadVertexShaders(ID3D11Device * device, ID3D11DeviceContext * context, const wchar_t * name)
@@ -153,9 +154,15 @@ void Material::SetPBRPixelShaderSrv()
 	pixelShader->SetShaderResourceView("roughnessMap", roughnessSrv);
 	pixelShader->SetShaderResourceView("aoMap", aoSrv);
 	pixelShader->SetShaderResourceView("normalMap",normalSrv);
-	pixelShader->SetSamplerState("basicSampler", samplerState);
+	pixelShader->SetShaderResourceView("irradianceMap", environmentDiffuseSrv);
+    pixelShader->SetSamplerState("basicSampler", samplerState);
 	pixelShader->CopyAllBufferData();
 	pixelShader->SetShader();
+}
+
+void Material::SetEnvironmentDiffuseSrvForPBR(ID3D11ShaderResourceView * environmentDiffuse)
+{
+	environmentDiffuseSrv = environmentDiffuse;
 }
 
 SimpleVertexShader * Material::GetvertexShader() {

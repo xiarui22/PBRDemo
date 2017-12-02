@@ -22,6 +22,7 @@ class Material
 	ID3D11ShaderResourceView * roughnessSrv;
 	ID3D11ShaderResourceView * aoSrv;
 	ID3D11ShaderResourceView * normalSrv;
+	ID3D11ShaderResourceView * environmentDiffuseSrv;
 
 public:
 	Material(ID3D11Device * device, ID3D11DeviceContext * context, MaterialType type, const wchar_t * path, 
@@ -50,6 +51,8 @@ public:
 	void SetPixelShaderSrv();
 	void SetSkyPixelShaderSrv();
 	void SetPBRPixelShaderSrv();
+
+	void SetEnvironmentDiffuseSrvForPBR(ID3D11ShaderResourceView *);
 
 };
 

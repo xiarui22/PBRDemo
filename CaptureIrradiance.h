@@ -18,18 +18,20 @@ class CaptureIrradiance
 	int height;
 
 	ID3D11Resource * captureRTVResource;
+	ID3D11DepthStencilView*  captureDSV;
 
+	//ID3D11RenderTargetView * test;
 public:
 	CaptureIrradiance();
 	~CaptureIrradiance();
 	bool Init(ID3D11Device *, int, int);
-	void SetRenderTarget(ID3D11RenderTargetView *,ID3D11DeviceContext *, ID3D11DepthStencilView *);
-	void ClearRenderTarget(ID3D11RenderTargetView *,ID3D11DeviceContext*, ID3D11DepthStencilView *);
+	void SetRenderTarget(ID3D11RenderTargetView *,ID3D11DeviceContext *);
+	void ClearRenderTarget(ID3D11RenderTargetView *,ID3D11DeviceContext*);
 
 	ID3D11ShaderResourceView * GetShaderResourceView();
 	ID3D11Texture2D * GetIrradianceMap();
 
-	void RenderEnvironmentMap(ID3D11DeviceContext *, ID3D11DepthStencilView *, Entity *);
+	void RenderEnvironmentMap(ID3D11DeviceContext *, Entity *);
 	void CreateCaptureMatrices();
 };
 

@@ -41,6 +41,7 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 	textureDesc.CPUAccessFlags = 0;
 	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
 	//textureDesc.MiscFlags = 0;
 
 	
@@ -51,11 +52,12 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 		return false;
 	}
 
+
 	//render target view description
 	rtvDesc.Format = textureDesc.Format;
 	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
 	rtvDesc.Texture2DArray.ArraySize = 1;
-	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.Texture2DArray.MipSlice = 0;
 	for (int i = 0; i < 6; i++) {
 		rtvDesc.Texture2DArray.FirstArraySlice = i;
         result = device->CreateRenderTargetView(irradianceMap, &rtvDesc, &capturedRTV[i]);
@@ -64,7 +66,6 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 		return false;
 	    }
 	}
-
 
 	//shader resource view description
 	srvDesc.Format = textureDesc.Format;
@@ -81,17 +82,34 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 		return false;
 	}
 
+	D3D11_TEXTURE2D_DESC dsDesc;					
+	dsDesc.Width = textureWidth;
+	dsDesc.Height = textureHeight;
+	dsDesc.Format = DXGI_FORMAT_D32_FLOAT;			
+	dsDesc.ArraySize = 1;
+	dsDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	dsDesc.Usage = D3D11_USAGE_DEFAULT;
+	dsDesc.SampleDesc.Count = 1;					
+	dsDesc.SampleDesc.Quality = 0;
+	dsDesc.CPUAccessFlags = 0;
+	dsDesc.MiscFlags = 0;
+	dsDesc.MipLevels = 1;
+
+	ID3D11Texture2D *depthStencilBuffer(NULL);
+	device->CreateTexture2D(&dsDesc, 0, &depthStencilBuffer);
+	
+	device->CreateDepthStencilView(depthStencilBuffer, 0, &captureDSV);
+	
+
 	width = textureWidth;
 	height = textureHeight;
-
-
 
 	return true;
 }
 
-void CaptureIrradiance::SetRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context, ID3D11DepthStencilView * depthStencilView)
+void CaptureIrradiance::SetRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context)
 {
-	context->OMSetRenderTargets(1, &capturedRTV, depthStencilView);
+	context->OMSetRenderTargets(1, &capturedRTV, captureDSV);
 
 	D3D11_VIEWPORT viewport = {};
 	viewport.TopLeftX = 0;
@@ -103,16 +121,15 @@ void CaptureIrradiance::SetRenderTarget(ID3D11RenderTargetView * capturedRTV, ID
 	context->RSSetViewports(1, &viewport);
 }
 
-void CaptureIrradiance::ClearRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context, ID3D11DepthStencilView * depthStencilView)
+void CaptureIrradiance::ClearRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context)
 {
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
-	//const float color[4] = { 1, 1, 0, 0.0f };
 	// Clear the render target and depth buffer (erases what's on the screen)
 	//  - Do this ONCE PER FRAME
 	//  - At the beginning of Draw (before drawing *anything*)
 	context->ClearRenderTargetView(capturedRTV, color);
 	context->ClearDepthStencilView(
-		depthStencilView,
+		captureDSV,
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 		1.0f,
 		0);
@@ -128,11 +145,8 @@ ID3D11Texture2D * CaptureIrradiance::GetIrradianceMap()
 	return irradianceMap;
 }
 
-void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, ID3D11DepthStencilView * depthStencilView, Entity * cubeForCapture)
+void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, Entity * cubeForCapture)
 {
-	
-	
-	
 	Entity* ge = cubeForCapture;
 	ID3D11Buffer* vb = ge->getMesh()->GetVertexBuffer();
 	ID3D11Buffer* ib = ge->getMesh()->GetIndexBuffer();
@@ -143,13 +157,17 @@ void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, ID3D
 	context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 	context->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
 	for (int i = 0; i < 6; i++) {
-		SetRenderTarget(capturedRTV[i], context, depthStencilView);
-		ClearRenderTarget(capturedRTV[i], context, depthStencilView);
+		ClearRenderTarget(capturedRTV[i], context);
+		SetRenderTarget(capturedRTV[i], context);
+		
+		//SetRenderTarget(test, context);
+		//ClearRenderTarget(test, context);
 
 		irradianceVS = ge->getMaterial()->GetvertexShader();
 		irradiancePS = ge->getMaterial()->GetpixelShader();
 	
 		irradianceVS->SetMatrix4x4("view", captureViews[i]);
+		//irradianceVS->SetMatrix4x4("view", captureViews[0]);
 		irradianceVS->SetMatrix4x4("projection", captureProjection);
 		irradianceVS->CopyAllBufferData();
 		irradianceVS->SetShader();
@@ -165,9 +183,6 @@ void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, ID3D
 		context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
 	
 	}
-
-
-
 
 	// Reset the render states we've changed
 	context->RSSetState(0);

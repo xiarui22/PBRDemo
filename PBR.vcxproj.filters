@@ -19,12 +19,6 @@
     <FxCompile Include="SkyVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="ConvolutionVS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="ConvolutionPS.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="EnvironmentDiffuseVS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>

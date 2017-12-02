@@ -34,6 +34,7 @@ Texture2D metallicMap: register(t1);
 Texture2D roughnessMap: register(t2);
 Texture2D aoMap: register(t3);
 Texture2D normalMap: register(t4);
+TextureCube irradianceMap: register(t5);
 SamplerState basicSampler : register(s0);
 
 static float PI = 3.14159265359f;
@@ -69,8 +70,12 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
 
 	return ggx1*ggx2;
 }
-float3 fresnelSchlickRoughness(float cosTheta, float3 F0) {
+float3 fresnelSchlick(float cosTheta, float3 F0) {
 	return F0 + (1.0 - F0)*pow(1.0 - cosTheta, 5.0);
+}
+
+float3 fresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
+	return F0 + (max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 float3 getNormalFromNormalMap(VertexToPixel input) {
@@ -111,6 +116,8 @@ float4 main(VertexToPixel input) : SV_TARGET
 	roughness = roughnessP;
 	ao = 1;
 
+	
+
 	PointLight pointLight[4];
     pointLight[0] = pl0;
 	pointLight[1] = pl1;
@@ -120,6 +127,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float3 V = normalize(camPos - input.worldPos);
 	float3 F0 = float3(0.04, 0.04, 0.04);
 	F0 = lerp(F0, albedo, metallic);
+
 	
 	//relfectance equation
 	float3 Lo = float3(0, 0, 0);
@@ -133,7 +141,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 		//cook-torrance BRDF
 		float NDF = DistributionGGX(N, H, roughness);
-		float3 F = fresnelSchlickRoughness(max(dot(N, V),0), F0);
+		float3 F = fresnelSchlick(max(dot(N, V),0), F0);
 		float G = GeometrySmith(N, V, L, roughness);
 
 		float3 kS = F;
@@ -148,7 +156,14 @@ float4 main(VertexToPixel input) : SV_TARGET
 		Lo += (kD*albedo / PI + specular)*radiance*NdotL;
 	}
 
-	float3 ambient = float3(0.03, 0.03, 0.03)*albedo*ao;
+
+	float3 kS = fresnelSchlickRoughness(max(dot(N, V), 0), F0, roughness);
+	float3 kD = 1.0 - kS;
+	float3 irradiance = irradianceMap.Sample(basicSampler, N).rgb;
+	float3 diffuse = irradiance * albedo;
+	float3 ambient = (kD * diffuse) * ao;
+
+	//float3 ambient = float3(0.03, 0.03, 0.03)*albedo*ao;
 	float3 color = ambient + Lo;
 	//HDR
 	color = color / (color + float3(1, 1, 1));

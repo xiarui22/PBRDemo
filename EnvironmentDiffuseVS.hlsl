@@ -19,7 +19,7 @@ struct VertexShaderInput
 struct VertexToPixel
 {
 	float4 position		: SV_POSITION;
-	float3 uvw			: TEXCOORD;
+	float3 localPos		: LOCALPOS;
 };
 
 // --------------------------------------------------------
@@ -29,23 +29,10 @@ VertexToPixel main(VertexShaderInput input)
 {
 	// Set up output
 	VertexToPixel output;
+	output.localPos = input.position;
 
-	// Make a view matrix with NO translation
-	matrix viewNoMovement = view;
-	viewNoMovement._41 = 0;
-	viewNoMovement._42 = 0;
-	viewNoMovement._43 = 0;
-
-	// Calculate output position
-	matrix viewProj = mul(viewNoMovement, projection);
+	matrix viewProj = mul(view, projection);
 	output.position = mul(float4(input.position, 1.0f), viewProj);
-
-	// Ensure our polygons are at max depth
-	output.position.z = output.position.w;
-
-	// Use the cube's vertex position as a direction in space
-	// from the origin (center of the cube)
-	output.uvw = input.position;
-
+	
 	return output;
 }

@@ -39,6 +39,5 @@ private:
 	Scene * scene;
 	CaptureIrradiance * irradianceCapturer;
 
-	
 };
 
