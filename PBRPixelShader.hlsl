@@ -106,7 +106,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//float3 normal;
 
 	//albedo = pow(albedoMap.Sample(basicSampler, input.uv).rgb, 2.2);
-	albedo = float4(1, 0, 0, 1);
+	albedo = float4(0.1, 0.1, 0.1, 1);
 	//input.normal = getNormalFromNormalMap(input);
 	input.normal = normalize(input.normal);
 	//metallic = metallicMap.Sample(basicSampler, input.uv).r + metallicP;
@@ -115,8 +115,6 @@ float4 main(VertexToPixel input) : SV_TARGET
 	metallic = metallicP;
 	roughness = roughnessP;
 	ao = 1;
-
-	
 
 	PointLight pointLight[4];
     pointLight[0] = pl0;
@@ -128,7 +126,6 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float3 F0 = float3(0.04, 0.04, 0.04);
 	F0 = lerp(F0, albedo, metallic);
 
-	
 	//relfectance equation
 	float3 Lo = float3(0, 0, 0);
 	for (int i = 0; i < 4; i++) {
@@ -156,7 +153,6 @@ float4 main(VertexToPixel input) : SV_TARGET
 		Lo += (kD*albedo / PI + specular)*radiance*NdotL;
 	}
 
-
 	float3 kS = fresnelSchlickRoughness(max(dot(N, V), 0), F0, roughness);
 	float3 kD = 1.0 - kS;
 	float3 irradiance = irradianceMap.Sample(basicSampler, N).rgb;
@@ -170,6 +166,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//gamma correction
 	color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 
+	
 	float4 FragColor = float4(color, 1.0);
 	//return float4(1, 0, 0, 1);
 	return FragColor;

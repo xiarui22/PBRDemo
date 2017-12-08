@@ -10,7 +10,6 @@ CaptureIrradiance::CaptureIrradiance()
 	captureRTVResource = 0;
 }
 
-
 CaptureIrradiance::~CaptureIrradiance()
 {
 	for (int i = 0; i < 6; i++) {
@@ -30,10 +29,10 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	//texture description
 	textureDesc.Width = textureWidth;
 	textureDesc.Height = textureHeight;
-	textureDesc.MipLevels = 0;
+	textureDesc.MipLevels = 1;
 	textureDesc.ArraySize = 6; //cubemap
 	//textureDesc.ArraySize = 1; 
-	//textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
