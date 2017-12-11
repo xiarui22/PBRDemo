@@ -101,7 +101,7 @@ void Game::PreComputeCubemaps()
 		viewport.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &viewport);
 	}
-	/*if (irradianceCapturer->PrefilteredMapExists(device));
+	if (irradianceCapturer->PrefilteredMapExists(device));
 	else {
 		irradianceCapturer->Init(device, 512, 512);
 		irradianceCapturer->RenderPrefilteredMap(context, scene->cubeForCapturePrefiltered);
@@ -117,7 +117,7 @@ void Game::PreComputeCubemaps()
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &viewport);
-	}*/
+	}
 	
 }
 
