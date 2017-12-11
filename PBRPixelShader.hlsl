@@ -155,7 +155,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	float3 kS = fresnelSchlickRoughness(max(dot(N, V), 0), F0, roughness);
 	float3 kD = 1.0 - kS;
-	float3 irradiance = irradianceMap.Sample(basicSampler, N).rgb;
+	float3 irradiance = irradianceMap.SampleLevel(basicSampler, N, 0).rgb;
 	float3 diffuse = irradiance * albedo;
 	float3 ambient = (kD * diffuse) * ao;
 
@@ -165,8 +165,6 @@ float4 main(VertexToPixel input) : SV_TARGET
 	color = color / (color + float3(1, 1, 1));
 	//gamma correction
 	color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
-
-	
 	float4 FragColor = float4(color, 1.0);
 	//return float4(1, 0, 0, 1);
 	return FragColor;

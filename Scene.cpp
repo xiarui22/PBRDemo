@@ -16,8 +16,10 @@ Scene::~Scene()
 	delete skyBoxMaterial;
 	delete skyBoxMesh;
 	delete skyBox;
-	delete irradianceMaterial;
-	delete cubeForCapture;
+	delete enviDiffuseMaterial;
+	delete prefilteredMaterial;
+	delete cubeForCaptureEnviDiffuse;
+	delete cubeForCapturePrefiltered;
 }
 
 
@@ -44,9 +46,13 @@ void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
 	PBRmaterial->LoadVertexShaders(device, context, L"PBRVertexShader");
 	PBRmaterial->LoadPixelShaders(device, context, L"PBRPixelShader");
 
-	irradianceMaterial = new Material(device, context, kMaterialCubemap, L"Assets/Textures/hw_crater.dds", nullptr, nullptr, nullptr, nullptr, nullptr);
-	irradianceMaterial->LoadVertexShaders(device, context, L"EnvironmentDiffuseVS");
-	irradianceMaterial->LoadPixelShaders(device, context, L"EnvironmentDiffusePS");
+	enviDiffuseMaterial = new Material(device, context, kMaterialCubemap, L"Assets/Textures/hw_crater.dds", nullptr, nullptr, nullptr, nullptr, nullptr);
+	enviDiffuseMaterial->LoadVertexShaders(device, context, L"EnvironmentDiffuseVS");
+	enviDiffuseMaterial->LoadPixelShaders(device, context, L"EnvironmentDiffusePS");
+
+	prefilteredMaterial = new Material(device, context, kMaterialCubemap, L"Assets/Textures/hw_crater.dds", nullptr, nullptr, nullptr, nullptr, nullptr);
+	prefilteredMaterial->LoadVertexShaders(device, context, L"EnvironmentSpecularPrefilteredVS");
+	prefilteredMaterial->LoadPixelShaders(device, context, L"EnvironmentSpecularPrefilteredPS");
 }
 
 void Scene::CreateLights()
@@ -78,7 +84,8 @@ void Scene::CreateEntities()
 			entities[i][j] = new Entity(mesh, PBRmaterial);
 
 	skyBox = new Entity(skyBoxMesh, skyBoxMaterial);
-	cubeForCapture = new Entity(skyBoxMesh, irradianceMaterial);
+	cubeForCaptureEnviDiffuse = new Entity(skyBoxMesh, enviDiffuseMaterial);
+	cubeForCapturePrefiltered = new Entity(skyBoxMesh, prefilteredMaterial);
 }
 
 void Scene::init(ID3D11Device * device, ID3D11DeviceContext * context)

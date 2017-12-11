@@ -30,14 +30,16 @@ public:
 private:
 
 	void CreateMatrices();
-	
+	void PreComputeCubemaps();
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.
 	POINT prevMousePos;
 	
 	Camera * camera;
 	Scene * scene;
+	// For captures
 	CaptureIrradiance * irradianceCapturer;
+	
 
 };
 

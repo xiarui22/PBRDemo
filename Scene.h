@@ -10,7 +10,8 @@ class Scene
 	Mesh * skyBoxMesh;
 	Material *PBRmaterial;
 	Material *skyBoxMaterial;
-	Material *irradianceMaterial;
+	Material *enviDiffuseMaterial;
+	Material *prefilteredMaterial;
 	
 public:
 	Scene();
@@ -21,8 +22,9 @@ public:
 	PointLight pointLight2;
 	PointLight pointLight3;
 	Entity * skyBox;
-	//Actually another scene, there's a cube to draw the skybox on and to be captured to generate irradiance
-	Entity * cubeForCapture;
+	// Actually another scene, there's a cube to draw the skybox on and to be captured to generate irradiance
+	Entity * cubeForCaptureEnviDiffuse;
+	Entity * cubeForCapturePrefiltered;
 
 	//use for PBR
 	XMFLOAT3 albedo;

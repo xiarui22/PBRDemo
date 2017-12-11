@@ -25,6 +25,12 @@
     <FxCompile Include="EnvironmentDiffusePS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="EnvironmentSpecularPrefilteredVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="EnvironmentSpecularPrefilteredPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">

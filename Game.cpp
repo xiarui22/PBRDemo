@@ -61,27 +61,11 @@ void Game::Init()
 	CreateMatrices();
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
 
-
-	irradianceCapturer = new CaptureIrradiance();
-
-	irradianceCapturer->Init(device, 512, 512);
-	
-	irradianceCapturer->RenderEnvironmentMap(context,  scene->cubeForCapture);
-
-	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
-	D3D11_VIEWPORT viewport = {};
-	viewport.TopLeftX = 0;
-	viewport.TopLeftY = 0;
-	viewport.Width = (float)width;
-	viewport.Height = (float)height;
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
-	context->RSSetViewports(1, &viewport);
+	PreComputeCubemaps();
 
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
-	
 }
 
 // --------------------------------------------------------
@@ -95,6 +79,47 @@ void Game::CreateMatrices()
 }
 
 
+
+void Game::PreComputeCubemaps()
+{
+	irradianceCapturer = new CaptureIrradiance();
+
+	if (irradianceCapturer->EnvironmentDiffuseMapExists(device));
+	else {
+		irradianceCapturer->Init(device, 512, 512);
+		irradianceCapturer->RenderEnvironmentDiffuseMap(context, scene->cubeForCaptureEnviDiffuse);
+		if (irradianceCapturer->SaveEnvironmentDiffuseMap(device, context));
+		else cout << "saved diffuse irradiance map failed" << endl;
+
+		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+		D3D11_VIEWPORT viewport = {};
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = (float)width;
+		viewport.Height = (float)height;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		context->RSSetViewports(1, &viewport);
+	}
+	/*if (irradianceCapturer->PrefilteredMapExists(device));
+	else {
+		irradianceCapturer->Init(device, 512, 512);
+		irradianceCapturer->RenderPrefilteredMap(context, scene->cubeForCapturePrefiltered);
+		if (irradianceCapturer->SavePrefilteredMap(device, context));
+		else cout << "saved prefiltered map failed" << endl;
+
+		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+		D3D11_VIEWPORT viewport = {};
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = (float)width;
+		viewport.Height = (float)height;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		context->RSSetViewports(1, &viewport);
+	}*/
+	
+}
 
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.

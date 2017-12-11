@@ -1,4 +1,9 @@
 ﻿C:\Program Files (x86)\MSBuild\Microsoft.Cpp\v4.0\V140\Microsoft.CppBuild.targets(392,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (DX11Starter.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\EnvironmentSpecularPrefilteredPS.cso
+F:\capstone pre\light demo\PBR\PBRPixelShader.hlsl(109,2-34): warning X3206: implicit truncation of vector type
+F:\capstone pre\light demo\PBR\PBRPixelShader.hlsl(137,10-61): warning X3206: implicit truncation of vector type
+  
+  compilation object save succeeded; see F:\capstone pre\light demo\PBR\Debug\PBRPixelShader.cso
   CaptureIrradiance.cpp
-  PBR.vcxproj -> Z:\IGMProfile\Documents\capstone\light demo\Debug\PBR.exe
-  PBR.vcxproj -> Z:\IGMProfile\Documents\capstone\light demo\Debug\PBR.pdb (Full PDB)
+  PBR.vcxproj -> F:\capstone pre\light demo\PBR\Debug\PBR.exe
+  PBR.vcxproj -> F:\capstone pre\light demo\PBR\Debug\PBR.pdb (Full PDB)

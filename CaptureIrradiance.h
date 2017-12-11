@@ -8,6 +8,7 @@ class CaptureIrradiance
 	SimplePixelShader * irradiancePS;
 
 	ID3D11Texture2D * irradianceMap;
+
 	ID3D11RenderTargetView * capturedRTV[6];
 	ID3D11ShaderResourceView * capturedSRV;
 
@@ -31,7 +32,15 @@ public:
 	ID3D11ShaderResourceView * GetShaderResourceView();
 	ID3D11Texture2D * GetIrradianceMap();
 
-	void RenderEnvironmentMap(ID3D11DeviceContext *, Entity *);
+	void RenderEnvironmentDiffuseMap(ID3D11DeviceContext *, Entity *);
+	void RenderPrefilteredMap(ID3D11DeviceContext *, Entity *);
 	void CreateCaptureMatrices();
+
+	bool SaveEnvironmentDiffuseMap(ID3D11Device *, ID3D11DeviceContext *);
+	bool EnvironmentDiffuseMapExists(ID3D11Device *);
+
+	bool SavePrefilteredMap(ID3D11Device *, ID3D11DeviceContext *);
+	bool PrefilteredMapExists(ID3D11Device *);
+
 };
 

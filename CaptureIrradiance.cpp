@@ -1,4 +1,7 @@
 #include "CaptureIrradiance.h"
+#include "DDSTextureLoader.h"
+#include "DirectXTex.h"
+
 
 CaptureIrradiance::CaptureIrradiance()
 {
@@ -29,9 +32,8 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	//texture description
 	textureDesc.Width = textureWidth;
 	textureDesc.Height = textureHeight;
-	textureDesc.MipLevels = 1;
+	textureDesc.MipLevels = 0;
 	textureDesc.ArraySize = 6; //cubemap
-	//textureDesc.ArraySize = 1; 
 	//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	textureDesc.SampleDesc.Count = 1;
@@ -41,16 +43,12 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	textureDesc.CPUAccessFlags = 0;
 	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
-	//textureDesc.MiscFlags = 0;
-
-	
 	//create the render target texture
 	result = device->CreateTexture2D(&textureDesc, 0, &irradianceMap);
 	if (FAILED(result))
 	{
 		return false;
 	}
-
 
 	//render target view description
 	rtvDesc.Format = textureDesc.Format;
@@ -69,11 +67,8 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	//shader resource view description
 	srvDesc.Format = textureDesc.Format;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-	//srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.TextureCube.MostDetailedMip = 0;
 	srvDesc.TextureCube.MipLevels = -1;
-	//srvDesc.Texture2D.MipLevels = -1;
-	//srvDesc.Texture2D.MostDetailedMip = 0;
 
 	result = device->CreateShaderResourceView(irradianceMap, &srvDesc, &capturedSRV);
 	if (FAILED(result))
@@ -98,7 +93,6 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	device->CreateTexture2D(&dsDesc, 0, &depthStencilBuffer);
 	
 	device->CreateDepthStencilView(depthStencilBuffer, 0, &captureDSV);
-	
 
 	width = textureWidth;
 	height = textureHeight;
@@ -144,7 +138,7 @@ ID3D11Texture2D * CaptureIrradiance::GetIrradianceMap()
 	return irradianceMap;
 }
 
-void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, Entity * cubeForCapture)
+void CaptureIrradiance::RenderEnvironmentDiffuseMap(ID3D11DeviceContext * context, Entity * cubeForCapture)
 {
 	Entity* ge = cubeForCapture;
 	ID3D11Buffer* vb = ge->getMesh()->GetVertexBuffer();
@@ -159,14 +153,10 @@ void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, Enti
 		ClearRenderTarget(capturedRTV[i], context);
 		SetRenderTarget(capturedRTV[i], context);
 		
-		//SetRenderTarget(test, context);
-		//ClearRenderTarget(test, context);
-
 		irradianceVS = ge->getMaterial()->GetvertexShader();
 		irradiancePS = ge->getMaterial()->GetpixelShader();
 	
 		irradianceVS->SetMatrix4x4("view", captureViews[i]);
-		//irradianceVS->SetMatrix4x4("view", captureViews[0]);
 		irradianceVS->SetMatrix4x4("projection", captureProjection);
 		irradianceVS->CopyAllBufferData();
 		irradianceVS->SetShader();
@@ -180,12 +170,49 @@ void CaptureIrradiance::RenderEnvironmentMap(ID3D11DeviceContext * context, Enti
 		context->OMSetDepthStencilState(ge->getMaterial()->GetDepthStencilState(), 0);
 
 		context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
-	
 	}
 
 	// Reset the render states we've changed
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);  
+}
+
+void CaptureIrradiance::RenderPrefilteredMap(ID3D11DeviceContext * context, Entity * cubeForCapture)
+{
+	Entity* ge = cubeForCapture;
+	ID3D11Buffer* vb = ge->getMesh()->GetVertexBuffer();
+	ID3D11Buffer* ib = ge->getMesh()->GetIndexBuffer();
+	CreateCaptureMatrices();
+	// Set buffers in the input assembler
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
+	context->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
+	for (int i = 0; i < 6; i++) {
+		ClearRenderTarget(capturedRTV[i], context);
+		SetRenderTarget(capturedRTV[i], context);
+
+		irradianceVS = ge->getMaterial()->GetvertexShader();
+		irradiancePS = ge->getMaterial()->GetpixelShader();
+
+		irradianceVS->SetMatrix4x4("view", captureViews[i]);
+		irradianceVS->SetMatrix4x4("projection", captureProjection);
+		irradianceVS->CopyAllBufferData();
+		irradianceVS->SetShader();
+
+		irradiancePS->SetShaderResourceView("environmentMap", ge->getMaterial()->GetShaderResourceView());
+		irradiancePS->SetSamplerState("basicSampler", ge->getMaterial()->GetSamplerState());
+		irradiancePS->CopyAllBufferData();
+		irradiancePS->SetShader();
+
+		context->RSSetState(ge->getMaterial()->GetRastState());
+		context->OMSetDepthStencilState(ge->getMaterial()->GetDepthStencilState(), 0);
+		context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
+	}
+
+	// Reset the render states we've changed
+	context->RSSetState(0);
+	context->OMSetDepthStencilState(0, 0);
 }
 
 void CaptureIrradiance::CreateCaptureMatrices()
@@ -223,5 +250,53 @@ void CaptureIrradiance::CreateCaptureMatrices()
 			up[i]);     // "Up" direction in 3D space (prevents roll)
 		XMStoreFloat4x4(&captureViews[i], DirectX::XMMatrixTranspose(V));
 	}
+}
+
+bool CaptureIrradiance::SaveEnvironmentDiffuseMap(ID3D11Device * device, ID3D11DeviceContext * context)
+{
+	ScratchImage image;
+	HRESULT hr = CaptureTexture(device, context, irradianceMap, image);
+	if (SUCCEEDED(hr))
+	{
+		hr = SaveToDDSFile(image.GetImages(), image.GetImageCount(), image.GetMetadata(),
+			DDS_FLAGS_NONE, L"Assets/Textures/diffuseIrradianceMap.dds");
+		if (FAILED(hr))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool CaptureIrradiance::EnvironmentDiffuseMapExists(ID3D11Device * device)
+{
+	HRESULT hr;
+	hr = CreateDDSTextureFromFile(device, L"Assets/Textures/diffuseIrradianceMap.dds", 0, &capturedSRV);
+	if (FAILED(hr)) return false;
+	return true;
+}
+
+bool CaptureIrradiance::SavePrefilteredMap(ID3D11Device * device, ID3D11DeviceContext * context)
+{
+	ScratchImage image;
+	HRESULT hr = CaptureTexture(device, context, irradianceMap, image);
+	if (SUCCEEDED(hr))
+	{
+		hr = SaveToDDSFile(image.GetImages(), image.GetImageCount(), image.GetMetadata(),
+			DDS_FLAGS_NONE, L"Assets/Textures/prefilteredMap.dds");
+		if (FAILED(hr))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool CaptureIrradiance::PrefilteredMapExists(ID3D11Device * device)
+{
+	HRESULT hr;
+	hr = CreateDDSTextureFromFile(device, L"Assets/Textures/prefilteredMap.dds", 0, &capturedSRV);
+	if (FAILED(hr)) return false;
+	return true;
 }
 
