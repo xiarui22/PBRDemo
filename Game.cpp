@@ -44,7 +44,9 @@ Game::~Game()
 	// we've made in the Game class
 	delete camera;
 	delete scene;
-	delete irradianceCapturer;
+	delete environmentDiffuseCapturer;
+	delete prefilteredCapturer;
+	delete brdfLUTCapturer;
 }
 
 // --------------------------------------------------------
@@ -62,7 +64,7 @@ void Game::Init()
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
 
 	PreComputeCubemaps();
-
+	PreComputerBrdfLUT();
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -75,6 +77,7 @@ void Game::Init()
 void Game::CreateMatrices()
 {
 	camera = new Camera(XMFLOAT3(2.0f, 2.0f, -8.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	//camera = new Camera(XMFLOAT3(0,0,-5), XMFLOAT3(0.0f, 0.0f, 1.0f));
 	camera->UpdateProjection(width, height);
 }
 
@@ -82,13 +85,16 @@ void Game::CreateMatrices()
 
 void Game::PreComputeCubemaps()
 {
-	irradianceCapturer = new CaptureIrradiance();
+	environmentDiffuseCapturer = new CaptureIrradiance();
+	prefilteredCapturer = new CaptureIrradiance();
 
-	if (irradianceCapturer->EnvironmentDiffuseMapExists(device));
+	
+
+	if (environmentDiffuseCapturer->EnvironmentDiffuseMapExists(device));
 	else {
-		irradianceCapturer->Init(device, 512, 512);
-		irradianceCapturer->RenderEnvironmentDiffuseMap(context, scene->cubeForCaptureEnviDiffuse);
-		if (irradianceCapturer->SaveEnvironmentDiffuseMap(device, context));
+		environmentDiffuseCapturer->Init(device,context, 512, 512);
+		environmentDiffuseCapturer->RenderEnvironmentDiffuseMap(context, scene->cubeForCaptureEnviDiffuse);
+		if (environmentDiffuseCapturer->SaveEnvironmentDiffuseMap(device, context));
 		else cout << "saved diffuse irradiance map failed" << endl;
 
 		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
@@ -101,11 +107,11 @@ void Game::PreComputeCubemaps()
 		viewport.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &viewport);
 	}
-	if (irradianceCapturer->PrefilteredMapExists(device));
+	if (prefilteredCapturer->PrefilteredMapExists(device));
 	else {
-		irradianceCapturer->Init(device, 512, 512);
-		irradianceCapturer->RenderPrefilteredMap(context, scene->cubeForCapturePrefiltered);
-		if (irradianceCapturer->SavePrefilteredMap(device, context));
+		prefilteredCapturer->Init(device,context, 512, 512);
+		prefilteredCapturer->RenderPrefilteredMap(context, scene->cubeForCapturePrefiltered);
+		if (prefilteredCapturer->SavePrefilteredMap(device, context));
 		else cout << "saved prefiltered map failed" << endl;
 
 		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
@@ -119,6 +125,31 @@ void Game::PreComputeCubemaps()
 		context->RSSetViewports(1, &viewport);
 	}
 	
+	
+}
+
+void Game::PreComputerBrdfLUT()
+{
+	brdfLUTCapturer = new CaptureTexture2d();
+
+    if (brdfLUTCapturer->BrdfLUTExists(device, context));
+	else {
+		brdfLUTCapturer->Init(device, context, 512, 512);
+		brdfLUTCapturer->RenderBrdfLUT(context, scene->brdfLUT);
+		if (brdfLUTCapturer->SaveBrdfLUT(device, context));
+		else cout << "saved BrdfLUT failed" << endl;
+
+		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+		D3D11_VIEWPORT viewport = {};
+		viewport.TopLeftX = 0;
+		viewport.TopLeftY = 0;
+		viewport.Width = (float)width;
+		viewport.Height = (float)height;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		context->RSSetViewports(1, &viewport);
+	}
+
 }
 
 // --------------------------------------------------------
@@ -170,6 +201,7 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
+	// Set buffers in the input assembler
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
@@ -190,7 +222,9 @@ void Game::Draw(float deltaTime, float totalTime)
 				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetData("pl3", &scene->pointLight3, sizeof(PointLight));
 
 				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetFloat3("camPos", camera->GetCamPos());
-				scene->entities[i][j]->getMaterial()->SetEnvironmentDiffuseSrvForPBR(irradianceCapturer->GetShaderResourceView());
+				scene->entities[i][j]->getMaterial()->SetEnvironmentDiffuseSrvForPBR(environmentDiffuseCapturer->GetShaderResourceView());
+				scene->entities[i][j]->getMaterial()->SetPrefilterMapSrvForPBR(prefilteredCapturer->GetShaderResourceView());
+				scene->entities[i][j]->getMaterial()->SetBRDFLUTSrvForPBR(brdfLUTCapturer->GetShaderResourceView());
 				scene->entities[i][j]->getMaterial()->SetPBRPixelShaderSrv();
 
 				ID3D11Buffer* vertexBuffer = scene->entities[i][j]->getMesh()->GetVertexBuffer();
@@ -205,6 +239,8 @@ void Game::Draw(float deltaTime, float totalTime)
 					0);    // Offset to add to each index when looking up vertices
 			}
 		}
+
+	    
 
 		//
 		//
@@ -221,11 +257,11 @@ void Game::Draw(float deltaTime, float totalTime)
 		scene->skyBox->getMaterial()->GetvertexShader()->CopyAllBufferData();
 		scene->skyBox->getMaterial()->GetvertexShader()->SetShader();
 
-		/*scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", irradianceCapturer->GetShaderResourceView());
+		/*scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", prefilteredCapturer->GetShaderResourceView());
 		scene->skyBox->getMaterial()->GetpixelShader()->SetSamplerState("basicSampler", scene->skyBox->getMaterial()->GetSamplerState());
 		scene->skyBox->getMaterial()->GetpixelShader()->CopyAllBufferData();
 		scene->skyBox->getMaterial()->GetpixelShader()->SetShader();*/
-
+		//scene->skyBox->getMaterial()->GetpixelShader()->SetFloat("roughness", 0.8);
 		scene->skyBox->getMaterial()->SetSkyPixelShaderSrv();
 		
 		context->RSSetState(scene->skyBox->getMaterial()->GetRastState());
@@ -236,7 +272,7 @@ void Game::Draw(float deltaTime, float totalTime)
 		context->RSSetState(0);
 		context->OMSetDepthStencilState(0, 0);
 
-	//	scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", 0);
+		scene->skyBox->getMaterial()->GetpixelShader()->SetShaderResourceView("environmentMap", 0);
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
 	//  - Do this exactly ONCE PER FRAME (always at the very end of the frame)

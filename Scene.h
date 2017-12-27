@@ -4,15 +4,17 @@
 #include "Light.h"
 #include "Mesh.h"
 #include "Entity.h"
+
 class Scene
 {
 	Mesh *mesh;
 	Mesh * skyBoxMesh;
+	Mesh * plane2dMesh;
 	Material *PBRmaterial;
 	Material *skyBoxMaterial;
 	Material *enviDiffuseMaterial;
 	Material *prefilteredMaterial;
-	
+	Material *brdfLUTMaterial;
 public:
 	Scene();
 	~Scene();
@@ -25,6 +27,7 @@ public:
 	// Actually another scene, there's a cube to draw the skybox on and to be captured to generate irradiance
 	Entity * cubeForCaptureEnviDiffuse;
 	Entity * cubeForCapturePrefiltered;
+	Entity * brdfLUT;
 
 	//use for PBR
 	XMFLOAT3 albedo;

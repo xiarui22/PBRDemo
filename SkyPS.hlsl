@@ -14,5 +14,6 @@ struct VertexToPixel
 // Entry point for this pixel shader
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	return environmentMap.Sample(basicSampler, input.uvw);
+	return environmentMap.SampleLevel(basicSampler, input.uvw, 1.2);
+	//return environmentMap.Sample(basicSampler, input.uvw);
 }

@@ -12,6 +12,7 @@ class Material
 
 	ID3D11ShaderResourceView * srv;
 	ID3D11SamplerState *samplerState;
+	ID3D11SamplerState *samplerStateForLUT;
 	MaterialType type;
 	ID3D11RasterizerState* rsSky;
 	ID3D11DepthStencilState* dsSky;
@@ -23,8 +24,11 @@ class Material
 	ID3D11ShaderResourceView * aoSrv;
 	ID3D11ShaderResourceView * normalSrv;
 	ID3D11ShaderResourceView * environmentDiffuseSrv;
+	ID3D11ShaderResourceView * prefilterMapSrv;
+	ID3D11ShaderResourceView * envBRDFSrv;
 
 public:
+	Material();
 	Material(ID3D11Device * device, ID3D11DeviceContext * context, MaterialType type, const wchar_t * path, 
 		const wchar_t *albedopath, const wchar_t *metallicpath, const wchar_t *roughnesspath, const wchar_t *aopath, const wchar_t * normalpath);
 	Material(SimpleVertexShader *, SimplePixelShader *, ID3D11ShaderResourceView *, ID3D11SamplerState *);
@@ -53,6 +57,7 @@ public:
 	void SetPBRPixelShaderSrv();
 
 	void SetEnvironmentDiffuseSrvForPBR(ID3D11ShaderResourceView *);
-
+	void SetPrefilterMapSrvForPBR(ID3D11ShaderResourceView *);
+	void SetBRDFLUTSrvForPBR(ID3D11ShaderResourceView *);
 };
 

@@ -27,14 +27,35 @@ float RadicalInverse_VdC(uint bits) {
 	return float(bits) * 2.3283064365386963e-10; // / 0x100000000
 }
 
+float VanDerCorpus(uint n, uint base)
+{
+	float invBase = 1.0 / float(base);
+	float denom = 1.0;
+	float result = 0.0;
+
+	for (uint i = 0u; i < 32u; ++i)
+	{
+		if (n > 0u)
+		{
+			denom = fmod(float(n), 2.0);
+			result += denom * invBase;
+			invBase = invBase / 2.0;
+			n = uint(float(n) / 2.0);
+		}
+	}
+
+	return result;
+}
+
 float2 Hammersley(uint i, uint N) {
 	return float2(float(i) / float(N), RadicalInverse_VdC(i));
+	//return float2(float(i) / float(N), VanDerCorpus(i, 2u));
 }
 
 float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
 	float a = roughness*roughness;
 	float phi = 2.0 * PI * Xi.x;
-	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a) - 1.0)*Xi.y);
+	float cosTheta = sqrt((1.0 - Xi.y) / (1.0 + (a*a - 1.0)*Xi.y));
 	float sinTheta = sqrt(1 - cosTheta*cosTheta);
 
 	// From spherical to cartesian
@@ -48,7 +69,7 @@ float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness) {
 	float3 tangent = normalize(cross(up, N));
 	float3 bitangent = cross(N, tangent);
 
-	float3 sampleVec = tangent*H.x + bitangent*H.y + up*H.z;
+	float3 sampleVec = tangent*H.x + bitangent*H.y + N*H.z;
 	return normalize(sampleVec);
 }
 
@@ -70,6 +91,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 		float NdotL = max(dot(N, L), 0.0);
 		if (NdotL > 0) {
 			prefilteredColor += environmentMap.Sample(basicSampler, L).rgb*NdotL;
+			//prefilteredColor += environmentMap.SampleLevel(basicSampler, L,0).rgb*NdotL;
 			totalWeight += NdotL;
 		}
 	}

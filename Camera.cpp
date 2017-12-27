@@ -107,8 +107,8 @@ void Camera::Update(float totaltime) {
 	}
 	if (GetAsyncKeyState('D') & 0x8000) {
 		camPos.x = camPos.x - lft.x*totaltime;
-		camPos.y = camPos.y + lft.y*totaltime;
-		camPos.z = camPos.z + lft.z*totaltime;
+		camPos.y = camPos.y - lft.y*totaltime;
+		camPos.z = camPos.z - lft.z*totaltime;
 	}
 	if (GetAsyncKeyState('X') & 0x8000) {
 		camPos.y -= totaltime;

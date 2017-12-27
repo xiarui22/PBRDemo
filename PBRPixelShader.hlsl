@@ -35,7 +35,11 @@ Texture2D roughnessMap: register(t2);
 Texture2D aoMap: register(t3);
 Texture2D normalMap: register(t4);
 TextureCube irradianceMap: register(t5);
+TextureCube prefilterMap: register(t6);
+Texture2D brdfLUT: register(t7);
+
 SamplerState basicSampler : register(s0);
+SamplerState samplerForLUT : register(s1);
 
 static float PI = 3.14159265359f;
 
@@ -52,6 +56,7 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
 
 	return nom / denom;
 }
+
 float GeometrySchlickGGX(float NdotV, float roughness) {
 	float r = roughness + 1.0;  //direct lighting
 	float k = r*r / 8.0;
@@ -61,6 +66,7 @@ float GeometrySchlickGGX(float NdotV, float roughness) {
 
 	return nom / denom;
 }
+
 float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
 	float NdotV = max(dot(N, V), 0);
 	float NdotL = max(dot(N, L), 0);
@@ -70,6 +76,7 @@ float GeometrySmith(float3 N, float3 V, float3 L, float roughness) {
 
 	return ggx1*ggx2;
 }
+
 float3 fresnelSchlick(float cosTheta, float3 F0) {
 	return F0 + (1.0 - F0)*pow(1.0 - cosTheta, 5.0);
 }
@@ -108,7 +115,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	//albedo = pow(albedoMap.Sample(basicSampler, input.uv).rgb, 2.2);
 	albedo = float4(0.1, 0.1, 0.1, 1);
 	//input.normal = getNormalFromNormalMap(input);
-	input.normal = normalize(input.normal);
+	//input.normal = normalize(input.normal);
 	//metallic = metallicMap.Sample(basicSampler, input.uv).r + metallicP;
 	//roughness = roughnessMap.Sample(basicSampler, input.uv).r + roughnessP;
 	//ao = aoMap.Sample(basicSampler, input.uv).r;
@@ -153,19 +160,30 @@ float4 main(VertexToPixel input) : SV_TARGET
 		Lo += (kD*albedo / PI + specular)*radiance*NdotL;
 	}
 
-	float3 kS = fresnelSchlickRoughness(max(dot(N, V), 0), F0, roughness);
+	// Add environment diffuse 
+	float3 F = fresnelSchlickRoughness(max(dot(N, V), 0), F0, roughness);
+	float3 kS = F;
 	float3 kD = 1.0 - kS;
+	kD *= 1.0 - metallic;
 	float3 irradiance = irradianceMap.SampleLevel(basicSampler, N, 0).rgb;
 	float3 diffuse = irradiance * albedo;
-	float3 ambient = (kD * diffuse) * ao;
 
-	//float3 ambient = float3(0.03, 0.03, 0.03)*albedo*ao;
+	float3 R = reflect(-V, N);
+	const float MAX_REFLECTION_LOD = 4.0;
+	float3 prefilteredColor = prefilterMap.SampleLevel(basicSampler, R, roughness * MAX_REFLECTION_LOD).rgb;
+
+	float2 envBRDF = brdfLUT.SampleLevel(samplerForLUT, float2(max(dot(N, V), 0), roughness),0).rg;
+	float3 specular = prefilteredColor * (F*envBRDF.x + envBRDF.y);
+
+	
+	float3 ambient = (kD * diffuse + specular) * ao;
+	
 	float3 color = ambient + Lo;
-	//HDR
+	
+	// HDR
 	color = color / (color + float3(1, 1, 1));
-	//gamma correction
+	// Gamma correction
 	color = pow(color, float3(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2));
 	float4 FragColor = float4(color, 1.0);
-	//return float4(1, 0, 0, 1);
 	return FragColor;
 }

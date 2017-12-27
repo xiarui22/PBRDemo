@@ -9,7 +9,7 @@ class CaptureIrradiance
 
 	ID3D11Texture2D * irradianceMap;
 
-	ID3D11RenderTargetView * capturedRTV[6];
+	ID3D11RenderTargetView * capturedRTV[5][6];
 	ID3D11ShaderResourceView * capturedSRV;
 
 	XMFLOAT4X4 captureViews[6];
@@ -21,11 +21,10 @@ class CaptureIrradiance
 	ID3D11Resource * captureRTVResource;
 	ID3D11DepthStencilView*  captureDSV;
 
-	//ID3D11RenderTargetView * test;
 public:
 	CaptureIrradiance();
 	~CaptureIrradiance();
-	bool Init(ID3D11Device *, int, int);
+	bool Init(ID3D11Device *, ID3D11DeviceContext *, int, int);
 	void SetRenderTarget(ID3D11RenderTargetView *,ID3D11DeviceContext *);
 	void ClearRenderTarget(ID3D11RenderTargetView *,ID3D11DeviceContext*);
 

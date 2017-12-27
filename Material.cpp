@@ -6,6 +6,10 @@
 using namespace std;
 using namespace DirectX;
 
+Material::Material() {
+
+}
+
 Material::Material(SimpleVertexShader* vertexShader, SimplePixelShader* pixelShader, ID3D11ShaderResourceView * ShaderResourceView, ID3D11SamplerState * SamplerState) {
 	vertexShader = vertexShader;
 	pixelShader = pixelShader;
@@ -92,6 +96,15 @@ void Material::SetPBRTexture(ID3D11Device * device, ID3D11DeviceContext * contex
 
 	device->CreateSamplerState(&sampleDes, &samplerState);
 
+	D3D11_SAMPLER_DESC sampleDesClamp = {};
+	sampleDes.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampleDes.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampleDes.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampleDes.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampleDes.MaxLOD = D3D11_FLOAT32_MAX;
+
+	device->CreateSamplerState(&sampleDesClamp, &samplerStateForLUT);
+
 	HRESULT hr;
 	hr = CreateWICTextureFromFile(device, context, albedopath, 0, &albedoSrv);
 	hr = CreateWICTextureFromFile(device, context, metallicpath, 0, &metallicSrv);
@@ -155,7 +168,10 @@ void Material::SetPBRPixelShaderSrv()
 	pixelShader->SetShaderResourceView("aoMap", aoSrv);
 	pixelShader->SetShaderResourceView("normalMap",normalSrv);
 	pixelShader->SetShaderResourceView("irradianceMap", environmentDiffuseSrv);
+	pixelShader->SetShaderResourceView("prefilterMap", prefilterMapSrv);
+	pixelShader->SetShaderResourceView("brdfLUT", envBRDFSrv);
     pixelShader->SetSamplerState("basicSampler", samplerState);
+	pixelShader->SetSamplerState("samplerForLUT", samplerStateForLUT);
 	pixelShader->CopyAllBufferData();
 	pixelShader->SetShader();
 }
@@ -163,6 +179,16 @@ void Material::SetPBRPixelShaderSrv()
 void Material::SetEnvironmentDiffuseSrvForPBR(ID3D11ShaderResourceView * environmentDiffuse)
 {
 	environmentDiffuseSrv = environmentDiffuse;
+}
+
+void Material::SetPrefilterMapSrvForPBR(ID3D11ShaderResourceView * srv)
+{
+	prefilterMapSrv = srv;
+}
+
+void Material::SetBRDFLUTSrvForPBR(ID3D11ShaderResourceView * srv)
+{
+	envBRDFSrv = srv;
 }
 
 SimpleVertexShader * Material::GetvertexShader() {

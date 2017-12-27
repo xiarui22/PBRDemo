@@ -6,8 +6,10 @@
 CaptureIrradiance::CaptureIrradiance()
 {
 	irradianceMap = 0;
-	for (int i = 0; i < 6; i++) {
-		capturedRTV[i] = 0;
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 6; j++) {
+			capturedRTV[i][j] = 0;
+		}
 	}
 	capturedSRV = 0;
 	captureRTVResource = 0;
@@ -15,14 +17,17 @@ CaptureIrradiance::CaptureIrradiance()
 
 CaptureIrradiance::~CaptureIrradiance()
 {
-	for (int i = 0; i < 6; i++) {
-		if (capturedRTV[i]) capturedRTV[i]->Release();
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 6; j++) {
+			if(capturedRTV[i][j])
+			capturedRTV[i][j]->Release();
+		}
 	}
 	if (capturedSRV) capturedSRV->Release();
 	if (irradianceMap) irradianceMap->Release();
 }
 
-bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textureHeight)
+bool CaptureIrradiance::Init(ID3D11Device * device , ID3D11DeviceContext * context, int textureWidth, int textureHeight)
 {
 	D3D11_TEXTURE2D_DESC textureDesc = {};
 	HRESULT result;
@@ -32,7 +37,7 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	//texture description
 	textureDesc.Width = textureWidth;
 	textureDesc.Height = textureHeight;
-	textureDesc.MipLevels = 0;
+	textureDesc.MipLevels = 5;
 	textureDesc.ArraySize = 6; //cubemap
 	//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -41,7 +46,7 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
 	textureDesc.CPUAccessFlags = 0;
-	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | D3D11_RESOURCE_MISC_GENERATE_MIPS;;
 
 	//create the render target texture
 	result = device->CreateTexture2D(&textureDesc, 0, &irradianceMap);
@@ -54,23 +59,28 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 	rtvDesc.Format = textureDesc.Format;
 	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
 	rtvDesc.Texture2DArray.ArraySize = 1;
-	rtvDesc.Texture2DArray.MipSlice = 0;
-	for (int i = 0; i < 6; i++) {
-		rtvDesc.Texture2DArray.FirstArraySlice = i;
-        result = device->CreateRenderTargetView(irradianceMap, &rtvDesc, &capturedRTV[i]);
-	    if (FAILED(result))
-	    {
-		return false;
-	    }
+	for (int i = 0; i < 5; i++) {
+		rtvDesc.Texture2DArray.MipSlice = i;
+		for (int j = 0; j < 6; j++) {
+			rtvDesc.Texture2DArray.FirstArraySlice = j;
+			result = device->CreateRenderTargetView(irradianceMap, &rtvDesc, &capturedRTV[i][j]);
+			if (FAILED(result))
+			{
+				return false;
+			}
+		}
 	}
 
 	//shader resource view description
 	srvDesc.Format = textureDesc.Format;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
-	srvDesc.TextureCube.MostDetailedMip = 0;
+	srvDesc.TextureCube.MostDetailedMip = 4;
 	srvDesc.TextureCube.MipLevels = -1;
 
+	
+
 	result = device->CreateShaderResourceView(irradianceMap, &srvDesc, &capturedSRV);
+	//context->GenerateMips(capturedSRV);
 	if (FAILED(result))
 	{
 		return false;
@@ -103,15 +113,6 @@ bool CaptureIrradiance::Init(ID3D11Device * device , int textureWidth, int textu
 void CaptureIrradiance::SetRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context)
 {
 	context->OMSetRenderTargets(1, &capturedRTV, captureDSV);
-
-	D3D11_VIEWPORT viewport = {};
-	viewport.TopLeftX = 0;
-	viewport.TopLeftY = 0;
-	viewport.Width = (float)width;
-	viewport.Height = (float)height;
-	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 1.0f;
-	context->RSSetViewports(1, &viewport);
 }
 
 void CaptureIrradiance::ClearRenderTarget(ID3D11RenderTargetView * capturedRTV, ID3D11DeviceContext * context)
@@ -149,32 +150,42 @@ void CaptureIrradiance::RenderEnvironmentDiffuseMap(ID3D11DeviceContext * contex
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 	context->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
-	for (int i = 0; i < 6; i++) {
-		ClearRenderTarget(capturedRTV[i], context);
-		SetRenderTarget(capturedRTV[i], context);
-		
-		irradianceVS = ge->getMaterial()->GetvertexShader();
-		irradiancePS = ge->getMaterial()->GetpixelShader();
-	
-		irradianceVS->SetMatrix4x4("view", captureViews[i]);
-		irradianceVS->SetMatrix4x4("projection", captureProjection);
-		irradianceVS->CopyAllBufferData();
-		irradianceVS->SetShader();
+	for (int i = 0; i <1; i++) {
+		for (int j = 0; j < 6; j++) {
+			ClearRenderTarget(capturedRTV[i][j], context);
+			SetRenderTarget(capturedRTV[i][j], context);
 
-		irradiancePS->SetShaderResourceView("environmentMap", ge->getMaterial()->GetShaderResourceView());
-		irradiancePS->SetSamplerState("basicSampler", ge->getMaterial()->GetSamplerState());
-		irradiancePS->CopyAllBufferData();
-		irradiancePS->SetShader();
+			D3D11_VIEWPORT viewport = {};
+			viewport.TopLeftX = 0;
+			viewport.TopLeftY = 0;
+			viewport.Width = (float)width*std::pow(0.5, i);
+			viewport.Height = (float)height*std::pow(0.5, i);
+			viewport.MinDepth = 0.0f;
+			viewport.MaxDepth = 1.0f;
+			context->RSSetViewports(1, &viewport);
 
-        context->RSSetState(ge->getMaterial()->GetRastState());
-		context->OMSetDepthStencilState(ge->getMaterial()->GetDepthStencilState(), 0);
+			irradianceVS = ge->getMaterial()->GetvertexShader();
+			irradiancePS = ge->getMaterial()->GetpixelShader();
 
-		context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
+			irradianceVS->SetMatrix4x4("view", captureViews[j]);
+			irradianceVS->SetMatrix4x4("projection", captureProjection);
+			irradianceVS->CopyAllBufferData();
+			irradianceVS->SetShader();
+
+			irradiancePS->SetShaderResourceView("environmentMap", ge->getMaterial()->GetShaderResourceView());
+			irradiancePS->SetSamplerState("basicSampler", ge->getMaterial()->GetSamplerState());
+			irradiancePS->CopyAllBufferData();
+			irradiancePS->SetShader();
+
+			context->RSSetState(ge->getMaterial()->GetRastState());
+			context->OMSetDepthStencilState(ge->getMaterial()->GetDepthStencilState(), 0);
+
+			context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
+		}	
 	}
-
 	// Reset the render states we've changed
 	context->RSSetState(0);
-	context->OMSetDepthStencilState(0, 0);  
+	context->OMSetDepthStencilState(0, 0);	
 }
 
 void CaptureIrradiance::RenderPrefilteredMap(ID3D11DeviceContext * context, Entity * cubeForCapture)
@@ -188,28 +199,39 @@ void CaptureIrradiance::RenderPrefilteredMap(ID3D11DeviceContext * context, Enti
 	UINT offset = 0;
 	context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 	context->IASetIndexBuffer(ib, DXGI_FORMAT_R32_UINT, 0);
-	for (int i = 0; i < 6; i++) {
-		ClearRenderTarget(capturedRTV[i], context);
-		SetRenderTarget(capturedRTV[i], context);
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 6; j++) {
+			ClearRenderTarget(capturedRTV[i][j], context);
+			SetRenderTarget(capturedRTV[i][j], context);
 
-		irradianceVS = ge->getMaterial()->GetvertexShader();
-		irradiancePS = ge->getMaterial()->GetpixelShader();
+			D3D11_VIEWPORT viewport = {};
+			viewport.TopLeftX = 0;
+			viewport.TopLeftY = 0;
+			viewport.Width = (float)width*std::pow(0.5, i);
+			viewport.Height = (float)height*std::pow(0.5, i);
+			viewport.MinDepth = 0.0f;
+			viewport.MaxDepth = 1.0f;
+			context->RSSetViewports(1, &viewport);
 
-		irradianceVS->SetMatrix4x4("view", captureViews[i]);
-		irradianceVS->SetMatrix4x4("projection", captureProjection);
-		irradianceVS->CopyAllBufferData();
-		irradianceVS->SetShader();
+			irradianceVS = ge->getMaterial()->GetvertexShader();
+			irradiancePS = ge->getMaterial()->GetpixelShader();
 
-		irradiancePS->SetShaderResourceView("environmentMap", ge->getMaterial()->GetShaderResourceView());
-		irradiancePS->SetSamplerState("basicSampler", ge->getMaterial()->GetSamplerState());
-		irradiancePS->CopyAllBufferData();
-		irradiancePS->SetShader();
+			irradianceVS->SetMatrix4x4("view", captureViews[j]);
+			irradianceVS->SetMatrix4x4("projection", captureProjection);
+			irradianceVS->CopyAllBufferData();
+			irradianceVS->SetShader();
 
-		context->RSSetState(ge->getMaterial()->GetRastState());
-		context->OMSetDepthStencilState(ge->getMaterial()->GetDepthStencilState(), 0);
-		context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
+			irradiancePS->SetShaderResourceView("environmentMap", ge->getMaterial()->GetShaderResourceView());
+			irradiancePS->SetSamplerState("basicSampler", ge->getMaterial()->GetSamplerState());
+			irradiancePS->SetFloat("roughness", (float)i/ (float)5);
+			irradiancePS->CopyAllBufferData();
+			irradiancePS->SetShader();
+
+			context->RSSetState(ge->getMaterial()->GetRastState());
+			context->OMSetDepthStencilState(ge->getMaterial()->GetDepthStencilState(), 0);
+			context->DrawIndexed(ge->getMesh()->GetIndexCount(), 0, 0);
+		}
 	}
-
 	// Reset the render states we've changed
 	context->RSSetState(0);
 	context->OMSetDepthStencilState(0, 0);

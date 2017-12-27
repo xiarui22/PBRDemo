@@ -31,6 +31,12 @@
     <FxCompile Include="EnvironmentSpecularPrefilteredPS.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="BRDFLookupTextureVS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="BRDFLookupTexturePS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -63,6 +69,7 @@
     <ClCompile Include="CaptureIrradiance.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CaptureTexture2d.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -98,6 +105,7 @@
     <ClInclude Include="CaptureIrradiance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CaptureTexture2d.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
