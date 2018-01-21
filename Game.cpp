@@ -47,6 +47,7 @@ Game::~Game()
 	delete environmentDiffuseCapturer;
 	delete prefilteredCapturer;
 	delete brdfLUTCapturer;
+	delete shadowMapRender;
 }
 
 // --------------------------------------------------------
@@ -65,6 +66,9 @@ void Game::Init()
 
 	PreComputeCubemaps();
 	PreComputerBrdfLUT();
+	
+	shadowMapRender = new ShadowMapRenderer();
+	shadowMapRender->Init(device, context,2048,2048);
 	// Tell the input assembler stage of the pipeline what kind of
 	// geometric primitives (points, lines or triangles) we want to draw.  
 	// Essentially: "What kind of shape should the GPU draw with our data?"
@@ -87,8 +91,6 @@ void Game::PreComputeCubemaps()
 {
 	environmentDiffuseCapturer = new CaptureIrradiance();
 	prefilteredCapturer = new CaptureIrradiance();
-
-	
 
 	if (environmentDiffuseCapturer->EnvironmentDiffuseMapExists(device));
 	else {
@@ -152,6 +154,8 @@ void Game::PreComputerBrdfLUT()
 
 }
 
+
+
 // --------------------------------------------------------
 // Handle resizing DirectX "stuff" to match the new window size.
 // For instance, updating our projection matrix's aspect ratio.
@@ -172,13 +176,23 @@ void Game::Update(float deltaTime, float totalTime)
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
 	//cout << deltaTime;
-
+	float moving = sin(totalTime) * 2.0f;
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
-			scene->entities[i][j]->setTranslation(i, j, 0);
-			scene->entities[i][j]->setScale(1, 1, 1);
+			scene->spheres[i][j]->setTranslation(i, j, moving);
+			scene->spheres[i][j]->setScale(1, 1, 1);
 		}
 	}
+
+	scene->quads[0]->setTranslation(0, 0, 0);
+	scene->quads[0]->setScale(5, 0.1, 5);
+	scene->quads[0]->setTranslation(2, -0.5, 0);
+
+	scene->quads[1]->setTranslation(0, 0, 0);
+	scene->quads[1]->setScale(5, 0.1, 5);
+	scene->quads[1]->setRotate(3.14/2, 0, 0);
+	scene->quads[1]->setTranslation(2, 2, 3);
+
 	camera->Update(deltaTime);
 }
 
@@ -187,6 +201,20 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
+	
+	shadowMapRender->RenderDepthMap(context, scene);
+
+	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)width;
+	viewport.Height = (float)height;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	context->RSSetViewports(1, &viewport);
+	context->RSSetState(0);
+
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = {0.4f, 0.6f, 0.75f, 0.0f};
 	//const float color[4] = { 1, 1, 0, 0.0f };
@@ -201,40 +229,92 @@ void Game::Draw(float deltaTime, float totalTime)
 		1.0f,
 		0);
 
+	
+
 	// Set buffers in the input assembler
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
 
+	for (int i = 0; i <2; i++) {
+
+		scene->quads[i]->setWorld(scene->quads[i]->getScale(), scene->quads[i]->getRotate(), scene->quads[i]->getTranslation());
+
+		scene->quads[i]->getMaterial()->SetVertexShaderMatrix(scene->quads[i]->getWorld(), camera->GetView(), camera->GetProjection());
+		//set light
+		scene->quads[i]->getMaterial()->GetvertexShader()->SetMatrix4x4("lightView", shadowMapRender->lightViewMatrix);
+		scene->quads[i]->getMaterial()->GetvertexShader()->SetMatrix4x4("lightProjection", shadowMapRender->lightProjectionMatrix);
+		scene->quads[i]->getMaterial()->GetvertexShader()->CopyAllBufferData();
+
+		scene->quads[i]->getMaterial()->GetvertexShader()->SetShader();
+
+
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetFloat("metallicP", scene->metallic[i]); //vertically increase metallic
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetFloat("roughnessP", scene->roughness[i]);  //horizontally increase roughness
+
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetData("pl0", &scene->pointLight0, sizeof(PointLight));
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetData("pl1", &scene->pointLight1, sizeof(PointLight));
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetData("pl2", &scene->pointLight2, sizeof(PointLight));
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetData("pl3", &scene->pointLight3, sizeof(PointLight));
+
+		scene->quads[i]->getMaterial()->GetpixelShader()->SetFloat3("camPos", camera->GetCamPos());
+		scene->quads[i]->getMaterial()->SetEnvironmentDiffuseSrvForPBR(environmentDiffuseCapturer->GetShaderResourceView());
+		scene->quads[i]->getMaterial()->SetPrefilterMapSrvForPBR(prefilteredCapturer->GetShaderResourceView());
+		scene->quads[i]->getMaterial()->SetBRDFLUTSrvForPBR(brdfLUTCapturer->GetShaderResourceView());
+		//scene->quads[i]->getMaterial()->SetShadowStuff(shadowMapRender->GetShaderResourceView(), shadowMapRender->GetShadowSampler());
+		scene->quads[i]->getMaterial()->SetShadowStuff(shadowMapRender->GetShaderResourceView(), shadowMapRender->GetShadowSampler());
+		scene->quads[i]->getMaterial()->SetPBRPixelShaderSrv();
+
+		ID3D11Buffer* vertexBuffer = scene->quads[i]->getMesh()->GetVertexBuffer();
+
+		context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+
+		context->IASetIndexBuffer(scene->quads[i]->getMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+
+		context->DrawIndexed(
+			scene->quads[i]->getMesh()->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
+			0,     // Offset to the first index we want to use
+			0);    // Offset to add to each index when looking up vertices
+	}
+
+
 		for (int i = 0; i < 5; i++) {
 			for (int j = 0; j <5; j++) {
 
-				scene->entities[i][j]->setWorld(scene->entities[i][j]->getScale(), scene->entities[i][j]->getRotate(), scene->entities[i][j]->getTranslation());
+				scene->spheres[i][j]->setWorld(scene->spheres[i][j]->getScale(), scene->spheres[i][j]->getRotate(), scene->spheres[i][j]->getTranslation());
 
-				scene->entities[i][j]->getMaterial()->SetVertexShaderMatrix(scene->entities[i][j]->getWorld(), camera->GetView(), camera->GetProjection());
+				scene->spheres[i][j]->getMaterial()->SetVertexShaderMatrix(scene->spheres[i][j]->getWorld(), camera->GetView(), camera->GetProjection());
+				
+				scene->spheres[i][j]->getMaterial()->GetvertexShader()->SetMatrix4x4("lightView", shadowMapRender->lightViewMatrix);
+				scene->spheres[i][j]->getMaterial()->GetvertexShader()->SetMatrix4x4("lightProjection", shadowMapRender->lightProjectionMatrix);
+				scene->spheres[i][j]->getMaterial()->GetvertexShader()->CopyAllBufferData();
+
+				scene->spheres[i][j]->getMaterial()->GetvertexShader()->SetShader();
+				
 				//set light
 			
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetFloat("metallicP", scene->metallic[j]); //vertically increase metallic
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetFloat("roughnessP", scene->roughness[i]);  //horizontally increase roughness
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetFloat("metallicP", scene->metallic[j]); //vertically increase metallic
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetFloat("roughnessP", scene->roughness[i]);  //horizontally increase roughness
 
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetData("pl0", &scene->pointLight0, sizeof(PointLight));
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetData("pl1", &scene->pointLight1, sizeof(PointLight));
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetData("pl2", &scene->pointLight2, sizeof(PointLight));
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetData("pl3", &scene->pointLight3, sizeof(PointLight));
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetData("pl0", &scene->pointLight0, sizeof(PointLight));
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetData("pl1", &scene->pointLight1, sizeof(PointLight));
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetData("pl2", &scene->pointLight2, sizeof(PointLight));
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetData("pl3", &scene->pointLight3, sizeof(PointLight));
 
-				scene->entities[i][j]->getMaterial()->GetpixelShader()->SetFloat3("camPos", camera->GetCamPos());
-				scene->entities[i][j]->getMaterial()->SetEnvironmentDiffuseSrvForPBR(environmentDiffuseCapturer->GetShaderResourceView());
-				scene->entities[i][j]->getMaterial()->SetPrefilterMapSrvForPBR(prefilteredCapturer->GetShaderResourceView());
-				scene->entities[i][j]->getMaterial()->SetBRDFLUTSrvForPBR(brdfLUTCapturer->GetShaderResourceView());
-				scene->entities[i][j]->getMaterial()->SetPBRPixelShaderSrv();
+				scene->spheres[i][j]->getMaterial()->GetpixelShader()->SetFloat3("camPos", camera->GetCamPos());
+				scene->spheres[i][j]->getMaterial()->SetEnvironmentDiffuseSrvForPBR(environmentDiffuseCapturer->GetShaderResourceView());
+				scene->spheres[i][j]->getMaterial()->SetPrefilterMapSrvForPBR(prefilteredCapturer->GetShaderResourceView());
+				scene->spheres[i][j]->getMaterial()->SetBRDFLUTSrvForPBR(brdfLUTCapturer->GetShaderResourceView());
+				scene->spheres[i][j]->getMaterial()->SetShadowStuff(shadowMapRender->GetShaderResourceView(), shadowMapRender->GetShadowSampler());
+				scene->spheres[i][j]->getMaterial()->SetPBRPixelShaderSrv();
 
-				ID3D11Buffer* vertexBuffer = scene->entities[i][j]->getMesh()->GetVertexBuffer();
+				ID3D11Buffer* vertexBuffer = scene->spheres[i][j]->getMesh()->GetVertexBuffer();
 
 				context->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 
-				context->IASetIndexBuffer(scene->entities[i][j]->getMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
+				context->IASetIndexBuffer(scene->spheres[i][j]->getMesh()->GetIndexBuffer(), DXGI_FORMAT_R32_UINT, 0);
 
 				context->DrawIndexed(
-					scene->entities[i][j]->getMesh()->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
+					scene->spheres[i][j]->getMesh()->GetIndexCount(),     // The number of indices to use (we could draw a subset if we wanted)
 					0,     // Offset to the first index we want to use
 					0);    // Offset to add to each index when looking up vertices
 			}

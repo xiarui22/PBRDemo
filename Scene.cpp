@@ -9,11 +9,15 @@ Scene::~Scene()
 {
 	for (int i = 0; i < 5; i++)
 		for (int j = 0; j < 5; j++)
-			delete entities[i][j];
+			delete spheres[i][j];
+
+	delete quads[0];
+	delete quads[1];
 
 	delete mesh;
 	delete PBRmaterial;
 	delete skyBoxMaterial;
+	delete shadowMap;
 	delete skyBoxMesh;
 	delete skyBox;
 	delete enviDiffuseMaterial;
@@ -59,8 +63,6 @@ void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
 	skyBoxMaterial = new Material(device, context, kMaterialCubemap, L"Assets/Textures/Texture1.dds", nullptr, nullptr, nullptr, nullptr, nullptr);
     skyBoxMaterial->LoadVertexShaders(device, context, L"SkyVS");
 	skyBoxMaterial->LoadPixelShaders(device, context, L"SkyPS");
-	/*skyBoxMaterial->LoadVertexShaders(device, context, L"EnvironmentSpecularPrefilteredVS");
-	skyBoxMaterial->LoadPixelShaders(device, context, L"EnvironmentSpecularPrefilteredPS");*/
 
 	PBRmaterial = new Material(device, context, kMaterialPBR, nullptr, L"Assets/Textures/greasy-pan-2-albedo.png", L"Assets/Textures/greasy-pan-2-metal.png",
 		L"Assets/Textures/parameter0.png", L"Assets/Textures/parameter1.png", L"Assets/Textures/greasy-pan-2-normal.png");
@@ -78,6 +80,11 @@ void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
 	brdfLUTMaterial = new Material();
 	brdfLUTMaterial->LoadVertexShaders(device, context, L"BRDFLookupTextureVS");
 	brdfLUTMaterial->LoadPixelShaders(device, context, L"BRDFLookupTexturePS");
+
+	shadowMap = new Material();
+	shadowMap->LoadVertexShaders(device, context, L"ShadowVS");
+	
+	
 }
 
 void Scene::CreateLights()
@@ -106,12 +113,23 @@ void Scene::CreateEntities()
 {
 	for (int i = 0; i < 5; i++)
 		for (int j = 0; j < 5; j++)
-			entities[i][j] = new Entity(mesh, PBRmaterial);
+			spheres[i][j] = new Entity(mesh, PBRmaterial);
+
+	quads[0] = new Entity(skyBoxMesh, PBRmaterial);
+	quads[1] = new Entity(skyBoxMesh, PBRmaterial);
 
 	skyBox = new Entity(skyBoxMesh, skyBoxMaterial);
 	cubeForCaptureEnviDiffuse = new Entity(skyBoxMesh, enviDiffuseMaterial);
 	cubeForCapturePrefiltered = new Entity(skyBoxMesh, prefilteredMaterial);
 	brdfLUT = new Entity(plane2dMesh, brdfLUTMaterial);
+
+	// For shadow map
+	for (int i = 0; i < 5; i++)
+		for (int j = 0; j < 5; j++)
+			entitiesOpaque.push_back(spheres[i][j]);
+
+	entitiesOpaque.push_back(quads[0]);
+	entitiesOpaque.push_back(quads[1]);
 }
 
 void Scene::init(ID3D11Device * device, ID3D11DeviceContext * context)

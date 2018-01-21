@@ -7,6 +7,7 @@
 #include "Scene.h"
 #include "CaptureIrradiance.h"
 #include "CaptureTexture2d.h"
+#include "ShadowMapRenderer.h"
 
 class Game 
 	: public DXCore
@@ -33,6 +34,7 @@ private:
 	void CreateMatrices();
 	void PreComputeCubemaps();
 	void PreComputerBrdfLUT();
+	
 	// Keeps track of the old mouse position.  Useful for 
 	// determining how far the mouse moved in a single frame.
 	POINT prevMousePos;
@@ -44,5 +46,6 @@ private:
 	CaptureIrradiance * prefilteredCapturer;
 
 	CaptureTexture2d * brdfLUTCapturer;
+	ShadowMapRenderer * shadowMapRender;
 };
 

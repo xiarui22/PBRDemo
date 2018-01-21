@@ -6,6 +6,7 @@ struct VertexToPixel
 	float3 tangent		: TANGENT;
 	float3 worldPos		: WORLDPOS;
 	float2 uv           : TEXCOORD;
+	float4 posForShadow : POSITION1;
 };
 
 struct PointLight {
@@ -37,14 +38,15 @@ Texture2D normalMap: register(t4);
 TextureCube irradianceMap: register(t5);
 TextureCube prefilterMap: register(t6);
 Texture2D brdfLUT: register(t7);
+Texture2D shadowMap		: register(t8);
 
 SamplerState basicSampler : register(s0);
 SamplerState samplerForLUT : register(s1);
-
+//SamplerComparisonState shadowSampler : register(s2);
+SamplerState shadowSampler : register(s2);
 static float PI = 3.14159265359f;
 
 float DistributionGGX(float3 N, float3 H, float roughness) {
-	
 	float a = roughness*roughness;
 	float a2 = a*a;
 	float NdotH = max(dot(N, H), 0);
@@ -106,16 +108,16 @@ float3 getNormalFromNormalMap(VertexToPixel input) {
 
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	float3 albedo;
+	float4 albedo;
 	float metallic;
 	float roughness;
 	float ao;
-	//float3 normal;
+	float3 normal;
 
 	//albedo = pow(albedoMap.Sample(basicSampler, input.uv).rgb, 2.2);
-	albedo = float4(0.1, 0.1, 0.1, 1);
+	albedo = float4(1, 1, 1, 1);
 	//input.normal = getNormalFromNormalMap(input);
-	//input.normal = normalize(input.normal);
+	input.normal = normalize(input.normal);
 	//metallic = metallicMap.Sample(basicSampler, input.uv).r + metallicP;
 	//roughness = roughnessMap.Sample(basicSampler, input.uv).r + roughnessP;
 	//ao = aoMap.Sample(basicSampler, input.uv).r;
@@ -178,8 +180,40 @@ float4 main(VertexToPixel input) : SV_TARGET
 	
 	float3 ambient = (kD * diffuse + specular) * ao;
 	
-	float3 color = ambient + Lo;
+	float3 color = float3(0,0,0);
+
+	// Shadow mapping
+	// Percentage closer filtering
 	
+	float width, height;
+	shadowMap.GetDimensions(width, height);
+    float2 textureSize = float2(width,height);
+	float2 texelSize = 1 / textureSize;
+	float bias = 0.001f;         //  Set the bias value for fixing the floating point precision issues.
+	float3 projCoords = input.posForShadow.xyz / input.posForShadow.w;
+	projCoords.xy = projCoords.xy * 0.5 + 0.5;
+	projCoords.y = 1 - projCoords.y;
+
+
+	if ((saturate(projCoords.x) == projCoords.x) && (saturate(projCoords.y) == projCoords.y)) {
+		
+		float currentDepth = projCoords.z;
+		currentDepth -= bias;
+		float shadow = 0;
+		for (int i = -3; i < 4; i++) {
+			for (int j = -3; j < 4; j++) {
+               float cloestDepth = shadowMap.Sample(shadowSampler, projCoords.xy + float2(i,j) * texelSize).r;
+			   shadow += currentDepth > cloestDepth  ? 1 : 0;
+			}
+		}
+		shadow /= 27;
+		color = (ambient + Lo) * (1 - shadow);
+	}
+	else {
+		//color = ambient + Lo;
+	}
+	
+
 	// HDR
 	color = color / (color + float3(1, 1, 1));
 	// Gamma correction

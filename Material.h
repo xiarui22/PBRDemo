@@ -27,6 +27,10 @@ class Material
 	ID3D11ShaderResourceView * prefilterMapSrv;
 	ID3D11ShaderResourceView * envBRDFSrv;
 
+	// PBR shader shadow 
+	ID3D11ShaderResourceView* shadowSRV;
+	ID3D11SamplerState* shadowSampler;
+
 public:
 	Material();
 	Material(ID3D11Device * device, ID3D11DeviceContext * context, MaterialType type, const wchar_t * path, 
@@ -59,5 +63,7 @@ public:
 	void SetEnvironmentDiffuseSrvForPBR(ID3D11ShaderResourceView *);
 	void SetPrefilterMapSrvForPBR(ID3D11ShaderResourceView *);
 	void SetBRDFLUTSrvForPBR(ID3D11ShaderResourceView *);
+
+	void SetShadowStuff(ID3D11ShaderResourceView *, ID3D11SamplerState*);
 };
 

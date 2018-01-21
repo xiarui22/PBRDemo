@@ -7,7 +7,8 @@ using namespace std;
 using namespace DirectX;
 
 Material::Material() {
-
+	vertexShader = nullptr;
+	pixelShader = nullptr;
 }
 
 Material::Material(SimpleVertexShader* vertexShader, SimplePixelShader* pixelShader, ID3D11ShaderResourceView * ShaderResourceView, ID3D11SamplerState * SamplerState) {
@@ -20,8 +21,11 @@ Material::Material(SimpleVertexShader* vertexShader, SimplePixelShader* pixelSha
 Material::Material(ID3D11Device * device, ID3D11DeviceContext * context, MaterialType type, const wchar_t * path, 
 	const wchar_t *albedopath, const wchar_t *metallicpath, const wchar_t *roughnesspath, const wchar_t *aopath, const wchar_t * normalpath)
 {
+	samplerStateForLUT = nullptr;
 	samplerState = nullptr;
 	srv = nullptr;
+	vertexShader = nullptr;
+	pixelShader = nullptr;
 
 	this->type = type;
 
@@ -87,6 +91,8 @@ void Material::SetupSkybox(ID3D11Device* device, ID3D11DeviceContext* context, c
 void Material::SetPBRTexture(ID3D11Device * device, ID3D11DeviceContext * context, 
 	const wchar_t *albedopath, const wchar_t *metallicpath, const wchar_t *roughnesspath, const wchar_t *aopath, const wchar_t * normalpath)
 {
+	HRESULT hr;
+
 	D3D11_SAMPLER_DESC sampleDes = {};
 	sampleDes.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	sampleDes.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -94,18 +100,18 @@ void Material::SetPBRTexture(ID3D11Device * device, ID3D11DeviceContext * contex
 	sampleDes.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	sampleDes.MaxLOD = D3D11_FLOAT32_MAX;
 
-	device->CreateSamplerState(&sampleDes, &samplerState);
+	hr = device->CreateSamplerState(&sampleDes, &samplerState);
 
 	D3D11_SAMPLER_DESC sampleDesClamp = {};
-	sampleDes.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampleDes.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampleDes.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	sampleDes.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	sampleDes.MaxLOD = D3D11_FLOAT32_MAX;
+	sampleDesClamp.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampleDesClamp.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampleDesClamp.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampleDesClamp.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampleDesClamp.MaxLOD = D3D11_FLOAT32_MAX;
 
-	device->CreateSamplerState(&sampleDesClamp, &samplerStateForLUT);
+	hr = device->CreateSamplerState(&sampleDesClamp, &samplerStateForLUT);
 
-	HRESULT hr;
+	
 	hr = CreateWICTextureFromFile(device, context, albedopath, 0, &albedoSrv);
 	hr = CreateWICTextureFromFile(device, context, metallicpath, 0, &metallicSrv);
 	hr = CreateWICTextureFromFile(device, context, roughnesspath, 0, &roughnessSrv);
@@ -139,9 +145,9 @@ void Material::SetVertexShaderMatrix(XMFLOAT4X4 worldm, XMFLOAT4X4 viewm, XMFLOA
 	vertexShader->SetMatrix4x4("view", viewm);
 	vertexShader->SetMatrix4x4("projection", projectionm);
 
-	vertexShader->CopyAllBufferData();
+	/*vertexShader->CopyAllBufferData();
 
-	vertexShader->SetShader();
+	vertexShader->SetShader();*/
 }
 
 void Material::SetPixelShaderSrv()
@@ -170,8 +176,10 @@ void Material::SetPBRPixelShaderSrv()
 	pixelShader->SetShaderResourceView("irradianceMap", environmentDiffuseSrv);
 	pixelShader->SetShaderResourceView("prefilterMap", prefilterMapSrv);
 	pixelShader->SetShaderResourceView("brdfLUT", envBRDFSrv);
+	pixelShader->SetShaderResourceView("shadowMap", shadowSRV);
     pixelShader->SetSamplerState("basicSampler", samplerState);
 	pixelShader->SetSamplerState("samplerForLUT", samplerStateForLUT);
+	pixelShader->SetSamplerState("shadowSampler", shadowSampler);
 	pixelShader->CopyAllBufferData();
 	pixelShader->SetShader();
 }
@@ -189,6 +197,12 @@ void Material::SetPrefilterMapSrvForPBR(ID3D11ShaderResourceView * srv)
 void Material::SetBRDFLUTSrvForPBR(ID3D11ShaderResourceView * srv)
 {
 	envBRDFSrv = srv;
+}
+
+void Material::SetShadowStuff(ID3D11ShaderResourceView * _shadowSRV, ID3D11SamplerState * _shadowSampler)
+{
+	shadowSRV = _shadowSRV;
+	shadowSampler = _shadowSampler;
 }
 
 SimpleVertexShader * Material::GetvertexShader() {
@@ -223,6 +237,6 @@ void Material::SetShaderResource(ID3D11ShaderResourceView * ShaderResourceView) 
 }
 Material::~Material()
 {
-	delete vertexShader;
-	delete pixelShader;
+	if (vertexShader != nullptr)  delete vertexShader;
+	if (pixelShader != nullptr) delete pixelShader;
 }
