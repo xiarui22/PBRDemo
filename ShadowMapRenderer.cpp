@@ -135,9 +135,9 @@ ID3D11SamplerState * ShadowMapRenderer::GetShadowSampler()
 void ShadowMapRenderer::RenderDepthMap(ID3D11DeviceContext * context, Scene * scene)
 {
 	XMFLOAT3 test = scene->pointLight2.pointLightPosition;
-	test = XMFLOAT3(0, 5, -2);
+	test = XMFLOAT3(0, 5, -3);
 	CreateMatrices(test);
-	//CreateMatrices(XMFLOAT3(0,0,0));
+	
 
 	SetRenderTarget(context);
 	ClearRenderTarget(context);
@@ -151,7 +151,7 @@ void ShadowMapRenderer::RenderDepthMap(ID3D11DeviceContext * context, Scene * sc
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 	context->RSSetViewports(1, &viewport);
-	context->RSSetState(0);
+	
 
 	UINT stride = sizeof(Vertex);
 	UINT offset = 0;
@@ -186,8 +186,6 @@ void ShadowMapRenderer::RenderDepthMap(ID3D11DeviceContext * context, Scene * sc
 
 			scene->spheres[i][j]->setWorld(scene->spheres[i][j]->getScale(), scene->spheres[i][j]->getRotate(), scene->spheres[i][j]->getTranslation());
 
-			//set light
-
 			shadowMapVS->SetMatrix4x4("world", scene->spheres[i][j]->getWorld());
 	
 			shadowMapVS->CopyAllBufferData();
@@ -204,6 +202,8 @@ void ShadowMapRenderer::RenderDepthMap(ID3D11DeviceContext * context, Scene * sc
 				0);    // Offset to add to each index when looking up vertices
 		}
 	}
+
+	context->RSSetState(0);
 }
 
 

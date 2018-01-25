@@ -114,8 +114,10 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float ao;
 	float3 normal;
 
-	//albedo = pow(albedoMap.Sample(basicSampler, input.uv).rgb, 2.2);
 	albedo = float4(1, 1, 1, 1);
+	//float3 albedof = pow(albedoMap.Sample(basicSampler, input.uv).rgb, 2.2);
+	
+	//albedo = float4(albedof, 1);
 	//input.normal = getNormalFromNormalMap(input);
 	input.normal = normalize(input.normal);
 	//metallic = metallicMap.Sample(basicSampler, input.uv).r + metallicP;
@@ -206,7 +208,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 			   shadow += currentDepth > cloestDepth  ? 1 : 0;
 			}
 		}
-		shadow /= 27;
+		shadow /= 25;
 		color = (ambient + Lo) * (1 - shadow);
 	}
 	else {

@@ -39,6 +39,7 @@ void Scene::CreateBasicGeometry(ID3D11Device * device)
 	// - The description is created on the stack because we only need
 	//    it to create the buffer.  The description is then useless.
 	mesh = new Mesh("Assets/Models/sphere.obj", device);
+	//mesh = new Mesh("Assets/Models/building.obj", device);
 	skyBoxMesh = new Mesh("Assets/Models/cube.obj", device);
 
 	// For 2d Plane
@@ -64,8 +65,8 @@ void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
     skyBoxMaterial->LoadVertexShaders(device, context, L"SkyVS");
 	skyBoxMaterial->LoadPixelShaders(device, context, L"SkyPS");
 
-	PBRmaterial = new Material(device, context, kMaterialPBR, nullptr, L"Assets/Textures/greasy-pan-2-albedo.png", L"Assets/Textures/greasy-pan-2-metal.png",
-		L"Assets/Textures/parameter0.png", L"Assets/Textures/parameter1.png", L"Assets/Textures/greasy-pan-2-normal.png");
+	PBRmaterial = new Material(device, context, kMaterialPBR, nullptr, L"Assets/Textures/Building1_CFT_D.png", L"Assets/Textures/Building1_CFT_MT.png",
+		L"Assets/Textures/Building1_CFT_R.png", L"Assets/Textures/Building_CFT_AO.png", L"Assets/Textures/Building1_CFT_N.png");
 	PBRmaterial->LoadVertexShaders(device, context, L"PBRVertexShader");
 	PBRmaterial->LoadPixelShaders(device, context, L"PBRPixelShader");
 
@@ -90,16 +91,16 @@ void Scene::CreateMaterial(ID3D11Device * device, ID3D11DeviceContext * context)
 void Scene::CreateLights()
 {
 	pointLight0.pointLightColor = XMFLOAT4(1, 1, 1, 1);
-	pointLight0.pointLightPosition = XMFLOAT3(5, 0, -3);
+	pointLight0.pointLightPosition = XMFLOAT3(5, 0, -4);
 
 	pointLight1.pointLightColor = XMFLOAT4(1, 1, 1, 1);
-	pointLight1.pointLightPosition = XMFLOAT3(0, 5, -3);
+	pointLight1.pointLightPosition = XMFLOAT3(0, 5, -4);
 
 	pointLight2.pointLightColor = XMFLOAT4(1, 1, 1, 1);
-	pointLight2.pointLightPosition = XMFLOAT3(5, 5, -3);
+	pointLight2.pointLightPosition = XMFLOAT3(5, 5, -4);
 
 	pointLight3.pointLightColor = XMFLOAT4(1, 1, 1, 1);
-	pointLight3.pointLightPosition = XMFLOAT3(0, 0, -3);
+	pointLight3.pointLightPosition = XMFLOAT3(0, 0, -4);
 
 	albedo = XMFLOAT3(1,0,0);
 	for (int i = 0; i < 5; i++) {

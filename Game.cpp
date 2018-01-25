@@ -81,7 +81,7 @@ void Game::Init()
 void Game::CreateMatrices()
 {
 	camera = new Camera(XMFLOAT3(2.0f, 2.0f, -8.0f), XMFLOAT3(0.0f, 0.0f, 1.0f));
-	//camera = new Camera(XMFLOAT3(0,0,-5), XMFLOAT3(0.0f, 0.0f, 1.0f));
+	//camera = new Camera(XMFLOAT3(0,2,-2), XMFLOAT3(0.0f, 0.0f, 1.0f));
 	camera->UpdateProjection(width, height);
 }
 
@@ -177,10 +177,11 @@ void Game::Update(float deltaTime, float totalTime)
 		Quit();
 	//cout << deltaTime;
 	float moving = sin(totalTime) * 2.0f;
+	//float moving = sin(0) * 2.0f;
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
 			scene->spheres[i][j]->setTranslation(i, j, moving);
-			scene->spheres[i][j]->setScale(1, 1, 1);
+			scene->spheres[i][j]->setScale(0.9, 0.9, 0.9);
 		}
 	}
 
@@ -279,7 +280,9 @@ void Game::Draw(float deltaTime, float totalTime)
 
 		for (int i = 0; i < 5; i++) {
 			for (int j = 0; j <5; j++) {
-
+		/*for (int i = 0; i < 1; i++) {
+			for (int j = 0; j <1; j++) {
+*/
 				scene->spheres[i][j]->setWorld(scene->spheres[i][j]->getScale(), scene->spheres[i][j]->getRotate(), scene->spheres[i][j]->getTranslation());
 
 				scene->spheres[i][j]->getMaterial()->SetVertexShaderMatrix(scene->spheres[i][j]->getWorld(), camera->GetView(), camera->GetProjection());
