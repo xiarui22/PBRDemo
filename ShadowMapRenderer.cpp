@@ -97,7 +97,6 @@ bool ShadowMapRenderer::Init(ID3D11Device * device, ID3D11DeviceContext * contex
 
 void ShadowMapRenderer::SetRenderTarget(ID3D11DeviceContext * context)
 {
-	//context->OMSetRenderTargets(1, &capturedRTV, captureDSV);
 	context->OMSetRenderTargets(0, 0, captureDSV);
 }
 

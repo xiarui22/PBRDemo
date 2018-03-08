@@ -64,7 +64,11 @@ void Game::Init()
 	CreateMatrices();
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
 
-	PreComputeCubemaps();
+	//PreComputeCubemaps();
+	environmentDiffuseCapturer = new CaptureIrradiance();
+	prefilteredCapturer = new CaptureIrradiance();
+	environmentDiffuseCapturer->Init(device, context,512,512);
+	prefilteredCapturer->Init(device, context, 512, 512);
 	PreComputerBrdfLUT();
 	
 	shadowMapRender = new ShadowMapRenderer();
@@ -89,33 +93,8 @@ void Game::CreateMatrices()
 
 void Game::PreComputeCubemaps()
 {
-	environmentDiffuseCapturer = new CaptureIrradiance();
-	prefilteredCapturer = new CaptureIrradiance();
-
-	if (environmentDiffuseCapturer->EnvironmentDiffuseMapExists(device));
-	else {
-		environmentDiffuseCapturer->Init(device,context, 512, 512);
 		environmentDiffuseCapturer->RenderEnvironmentDiffuseMap(context, scene->cubeForCaptureEnviDiffuse);
-		if (environmentDiffuseCapturer->SaveEnvironmentDiffuseMap(device, context));
-		else cout << "saved diffuse irradiance map failed" << endl;
-
-		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
-		D3D11_VIEWPORT viewport = {};
-		viewport.TopLeftX = 0;
-		viewport.TopLeftY = 0;
-		viewport.Width = (float)width;
-		viewport.Height = (float)height;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		context->RSSetViewports(1, &viewport);
-	}
-	if (prefilteredCapturer->PrefilteredMapExists(device));
-	else {
-		prefilteredCapturer->Init(device,context, 512, 512);
 		prefilteredCapturer->RenderPrefilteredMap(context, scene->cubeForCapturePrefiltered);
-		if (prefilteredCapturer->SavePrefilteredMap(device, context));
-		else cout << "saved prefiltered map failed" << endl;
-
 		context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
 		D3D11_VIEWPORT viewport = {};
 		viewport.TopLeftX = 0;
@@ -125,9 +104,6 @@ void Game::PreComputeCubemaps()
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		context->RSSetViewports(1, &viewport);
-	}
-	
-	
 }
 
 void Game::PreComputerBrdfLUT()
@@ -176,8 +152,8 @@ void Game::Update(float deltaTime, float totalTime)
 	if (GetAsyncKeyState(VK_ESCAPE))
 		Quit();
 	//cout << deltaTime;
-	float moving = sin(totalTime) * 2.0f;
-	//float moving = sin(0) * 2.0f;
+	//float moving = sin(totalTime) * 2.0f;
+	float moving = sin(0) * 2.0f;
 	for (int i = 0; i < 5; i++) {
 		for (int j = 0; j < 5; j++) {
 			scene->spheres[i][j]->setTranslation(i, j, moving);
@@ -202,7 +178,7 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
-	
+	PreComputeCubemaps();
 	shadowMapRender->RenderDepthMap(context, scene);
 
 	context->OMSetRenderTargets(1, &backBufferRTV, depthStencilView);
